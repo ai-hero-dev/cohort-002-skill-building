@@ -1,5 +1,5 @@
-import React, { type ReactNode } from 'react';
 import type { UIMessage } from 'ai';
+import React from 'react';
 import ReactMarkdown from 'react-markdown';
 
 export const Wrapper = (props: {
