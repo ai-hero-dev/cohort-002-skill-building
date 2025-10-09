@@ -1,5 +1,6 @@
-BM25 (Best Match 25) is a keyword-based search algorithm that ranks documents based on term frequency and document length normalization.
+<!-- AI Generated, review carefully -->
 
+BM25 (Best Match 25) is a keyword-based search algorithm that ranks documents based on term frequency and document length normalization.
 
 It's the foundation for many search engines and retrieval systems, working well when you need to match specific keywords or phrases.
 
@@ -58,12 +59,14 @@ Change the `keywords` array and see how results change. Notice:
 ## Strengths and Limitations
 
 **Strengths:**
+
 - Fast and efficient
 - Works well for exact keyword matching
 - No external API calls or embeddings needed
 - Deterministic results
 
 **Limitations:**
+
 - Doesn't understand semantic meaning (e.g., "home" vs "house")
 - Requires exact or similar keywords to find relevant results
 - Can't handle synonyms or related concepts
