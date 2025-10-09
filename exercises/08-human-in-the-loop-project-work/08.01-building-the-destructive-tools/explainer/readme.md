@@ -1,0 +1,1 @@
+I kind of want to throw this open to folks who are deciding to build out their own destructive tools. There are several options you can take here. You can either add MCP servers. You can connect your personal assistant to actual functions.
