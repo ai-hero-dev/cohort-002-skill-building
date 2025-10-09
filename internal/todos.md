@@ -14,4 +14,10 @@ Another possibility here is to dive into long-running workflows where we can hav
 
 Or just the ability to abort the personal assistant as it's going.
 
+Or the ability to create a to-do list out of the stuff the AI is processing, which I assume is just a tool call.
+
+Or the ability to do context compaction too, which again is something I get asked very frequently.
+
 I do think probably the sum of all of that will end up being less exciting than just saying, we're doing sub-agents.
+
+Or it might give us actually more things we can talk about in the landing page. You will be doing this and this and this.
