@@ -117,3 +117,8 @@ Good luck with the implementation!
 - [ ] Test your implementation by running the local dev server and asking questions about emails in the chat interface.
 
 - [ ] Observe the console logs to see which emails are being retrieved for your queries - and notice whether the results are better or worse than the BM25 results.
+
+## Crash Course Links
+
+- [01.02 - Choosing Your Model](../../../../../internal/LESSON_LEARNINGS.md#0102---choosing-your-model) - `google.textEmbeddingModel()` usage
+- [01.03 - Generating Text](../../../../../internal/LESSON_LEARNINGS.md#0103---generating-text) - AI SDK basics

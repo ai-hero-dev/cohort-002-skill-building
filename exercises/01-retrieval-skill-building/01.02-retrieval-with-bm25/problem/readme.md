@@ -106,3 +106,9 @@ BM25 is a simple starting point for this task - not perfect, but effective for g
   - Try asking different questions about emails to see if the assistant returns relevant emails
   - Verify that the responses include citations from email subjects
   - **Debugging tip**: Use `console.log()` to view the generated keywords in your terminal - this helps you understand what search terms the LLM is creating
+
+## Crash Course Links
+
+- [01.09 - Streaming Objects](../../../../../internal/LESSON_LEARNINGS.md#0109---streaming-objects) - `streamObject()` for structured keyword generation
+- [01.06 - Stream Text to UI](../../../../../internal/LESSON_LEARNINGS.md#0106---stream-text-to-ui) - `streamText()` and `createUIMessageStreamResponse()`
+- [07.01 - Custom Data Parts](../../../../../internal/LESSON_LEARNINGS.md#0701---custom-data-parts) - `createUIMessageStream()` patterns

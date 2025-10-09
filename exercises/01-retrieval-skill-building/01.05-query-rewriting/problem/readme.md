@@ -92,3 +92,9 @@ Good luck, and I will see you in the solution.
 - [ ] Verify that the search results are more relevant to your current question
 
 - [ ] Try asking follow-up questions to test how well the system handles conversation context
+
+## Crash Course Links
+
+- [01.09 - Streaming Objects](../../../../../internal/LESSON_LEARNINGS.md#0109---streaming-objects) - `generateObject()` with schema
+- [05.02 - Basic Prompting](../../../../../internal/LESSON_LEARNINGS.md#0502---basic-prompting) - Prompt engineering fundamentals
+- [05.01 - The Template](../../../../../internal/LESSON_LEARNINGS.md#0501---the-template) - Structuring prompts effectively

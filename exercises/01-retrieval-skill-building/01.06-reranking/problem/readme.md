@@ -121,3 +121,10 @@ Good luck, and I'll see you in the solution.
 - [ ] Monitor the impact on response time/latency
 
 - [ ] Evaluate whether the quality of answers improves with the re-ranking step
+
+## Crash Course Links
+
+- [01.09 - Streaming Objects](../../../../../internal/LESSON_LEARNINGS.md#0109---streaming-objects) - `generateObject()` with schema for reranking
+- [05.02 - Basic Prompting](../../../../../internal/LESSON_LEARNINGS.md#0502---basic-prompting) - Prompt engineering for reranker
+- [05.01 - The Template](../../../../../internal/LESSON_LEARNINGS.md#0501---the-template) - System prompt structure
+- [05.03 - Exemplars](../../../../../internal/LESSON_LEARNINGS.md#0503---exemplars) - Using examples to guide LLM behavior
