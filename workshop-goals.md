@@ -55,30 +55,42 @@
 
 ### [02.01 - Building Your Own Dataset](./exercises/02-retrieval-project-work/02.01-building-your-own-dataset/explainer/readme.md) (Explainer)
 
-- Set up custom dataset for project work
-- Options: Gmail export, chat logs, or pre-built email dataset
-- Prepare data structure for retrieval pipeline
+- Choose dataset: pre-built (75 or 547 emails) or custom
+- Gmail export via mbox for personal email data
+- Alternative datasets: notes, chat logs, docs, transcripts, journals
+- Map any JSON to Email schema (id/subject/body minimum)
 - Optional: skip if using pre-built dataset
 
-### [02.02 - Building a Search Algorithm](./exercises/02-retrieval-project-work/02.02-building-a-search-algorithm/explainer/todo.md) (Explainer)
+### [02.02 - Building a Search Algorithm](./exercises/02-retrieval-project-work/02.02-building-a-search-algorithm/explainer/notes.md) (Explainer)
 
-- Build complete search algorithm from scratch in project search page
-- Work directly in project codebase vs isolated exercises
+- Replace simple string search with BM25 keyword search in project `/search` page
+- Implement semantic search using `embedMany` and `cosineSimilarity`
+- Build file-system embedding cache (`data/embeddings/{emailId}.json`) to avoid regeneration
+- Combine BM25 + embedding results with reciprocal rank fusion
+- Production alternative: pgvector in Postgres stores embeddings on database rows
+- Apply Section 01 retrieval skills to real project codebase
 
-### [02.03 - Building a Search Agent](./exercises/02-retrieval-project-work/02.03-building-a-search-agent/explainer/todo.md) (Explainer)
+### [02.03 - Building a Search Workflow](./exercises/02-retrieval-project-work/02.03-building-a-search-workflow/explainer/notes.md) (Explainer)
 
-- Connect search algorithm to agent
-- Integrate retrieval with agent conversation flow
-- Apply query optimization in production context
+- Build chat API route with `createUIMessageStream` for conversational retrieval
+- Generate keywords + search query from conversation via `generateObject` (query rewriting)
+- Integrate lesson 2.2 search algorithm (BM25 + embeddings + rank fusion)
+- Add mandatory reranking step: pass top 30 to reranker LLM, return relevant IDs only
+- Stream retrieved emails as custom data parts (`data-search-results`) before answer
+- Experiment with email formatting (JSON/markdown/minimal) and monitor token usage via `result.usage`
+- Learn formatting impact: different formats vary 30-50% in token consumption
+- Stream final answer with citations from retrieved email context
 
-### [02.04 - Returning Related Emails](./exercises/02-retrieval-project-work/02.04-returning-related-emails/explainer/todo.md) (Explainer)
+### [02.04 - Agent-Controlled Search Tools](./exercises/02-retrieval-project-work/02.04-agent-controlled-search-tools/explainer/notes.md) (Explainer)
 
-- Understand email relationships and thread structure
-- Fetch entire email threads from single email match
-- Include related emails in retrieval results
-- Configure before/after range for thread context
-- Explore LLM tool for dynamic thread fetching
-- Pass thread-enriched results to reranker
+- Convert automatic RAG flow (lesson 2.3) to agent-driven tool orchestration
+- Build `searchSemanticEmails` tool: BM25 + embeddings + RRF + reranking, metadata only
+- Build `filterEmails` tool: traditional filtering (`from`, `contains`, `limit`, `contentLevel`)
+- `contentLevel` union: `subjectOnly` (metadata), `fullContent` (with body), `fullThread` (entire thread)
+- Build `getEmailById` tool: targeted retrieval after metadata scan, optional thread inclusion
+- Configure `stopWhen: stepCountIs(5)` for multi-tool workflows
+- Apply Anthropic prompt template: task context → background data → rules → the ask
+- Agent autonomy: semantic vs filter search, metadata scan → targeted retrieval patterns
 
 ## Section 03: Memory Skill Building
 
