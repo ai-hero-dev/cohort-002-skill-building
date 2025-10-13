@@ -301,7 +301,44 @@
 
 ## Section 08: Human-in-the-Loop Project Work
 
-_Content to be added_
+### [08.01 - Building Destructive Tools & Integrations](./exercises/08-human-in-the-loop-project-work/08.01-building-the-destructive-tools/explainer/notes.md) (Explainer)
+
+- Implement destructive tool handlers (email, GitHub, calendar, todos)
+- Integrate MCP servers for massive action coverage (Zapier: 30k+ actions)
+- Design service layer architecture separating tools from execution
+- Balance power vs risk: HITL for destructive, instant for safe actions
+- Direct API integration patterns (Resend, Octokit, Slack SDK)
+- Hybrid tool wrapper + external service abstraction
+- Persistence layer integration for local data operations
+- Error handling, authentication patterns (env vars, OAuth, per-user keys)
+- System prompt engineering to describe available tools
+- Zapier MCP nuclear option: Gmail, Sheets, Airtable, Salesforce, 8,000 apps
+- 20+ integration ideas across dev tools, communication, automation, finance
+
+### [08.02 - Build the HITL Harness](./exercises/08-human-in-the-loop-project-work/08.02-build-the-hitl-harness/explainer/notes.md) (Explainer)
+
+- Apply Section 07 HITL patterns to real assistant project
+- Define custom data parts: `action-start`, `action-decision`, `action-end`
+- Modify tools from 8.1 to write actions instead of executing immediately
+- Build `findDecisionsToProcess` to match actions with decisions
+- Create frontend approval/rejection UI with feedback capture
+- Format custom parts in diary function for LLM context
+- Execute approved actions, handle rejections with user feedback
+- Use `messagesAfterHitl` with appended `action-end` parts for LLM visibility
+- Track action IDs with decisions to hide buttons after submission
+- System prompt guidance on HITL behavior and action outcomes
+
+### [08.03 - Giving Timed Access to Tools](./exercises/08-human-in-the-loop-project-work/08.03-giving-timed-access-to-tools/explainer/notes.md) (Explainer)
+
+- Thread-scoped permission system to reduce approval friction
+- Extend persistence layer: track `grantedPermissions` per chat
+- "Approve Once" vs "Allow for This Thread" decision types
+- Check permissions before requesting HITL: auto-execute if granted
+- Build permission revocation UI in settings/sidebar
+- Frontend buttons for single vs thread-scoped approval
+- Security considerations: thread scope, expiration times, revocation
+- System prompt transparency: inform LLM of pre-approved tools
+- UX patterns: permission badges, clear controls, edge case handling
 
 ## Section 09: Subagents Skill Building
 
