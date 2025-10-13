@@ -44,7 +44,7 @@ export const POST = async (req: Request): Promise<Response> => {
 
 Our first task is implementing a keyword generator. We need to extract relevant search terms from the conversation history. This is where we'll use `streamObject` from the AI SDK.
 
-For search functionality, we'll use the [BM25 algorithm](https://en.wikipedia.org/wiki/Okapi_BM25) (Best Match 25), which ranks documents based on keyword relevance. The system loads emails from the repo's root at `datasets/emails.json` using the [`loadEmails`](./api/bm25.ts) function:
+For search functionality, we'll use the [BM25 algorithm](https://www.elastic.co/blog/practical-bm25-part-2-the-bm25-algorithm-and-its-variables) (Best Match 25), which ranks documents based on keyword relevance. The system loads emails from the repo's root at `datasets/emails.json` using the [`loadEmails`](./api/bm25.ts) function:
 
 ```ts
 export const loadEmails = async () => {
