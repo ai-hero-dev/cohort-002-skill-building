@@ -174,12 +174,14 @@
 
 ## Section 05: Evals Skill Building
 
-### [05.01 - Evaluating Tool Call Agents](./exercises/05-evals-skill-building/05.01-evaluating-tool-call-agents/explainer/readme.md) (Explainer)
+### [05.01 - Evaluating Tool Call Agents](./exercises/05-evals-skill-building/05.01-evaluating-tool-call-agents/problem/readme.md) (Problem)
 
-- Test LLM tool calling behavior using Evalite framework
+- Test LLM tool calling with Evalite framework
+- Fake tools: getWeather and calculator for testing
 - Inspect `toolCalls` array to verify expected tool invocation
-- Binary scoring pattern: 1 for success, 0 for failure
-- Extend evaluations to validate tool parameters and execution results
+- Test positive cases (tool needed) and negative cases (no tool needed)
+- Binary scoring pattern: 1 correct, 0 wrong
+- Extend to validate tool parameters
 - Foundation for systematic agent testing
 
 ### [05.02 - Creating Synthetic Datasets](./exercises/05-evals-skill-building/05.02-creating-synthetic-datasets/problem/readme.md) (Problem)
