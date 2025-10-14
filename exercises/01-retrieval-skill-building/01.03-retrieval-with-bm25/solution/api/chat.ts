@@ -33,7 +33,14 @@ export const POST = async (req: Request): Promise<Response> => {
 
       const searchResults = await searchEmails(allKeywords);
 
-      const topResults = searchResults.slice(0, 10);
+      const topResults = searchResults
+        .slice(0, 10)
+        .filter((result) => result.score > 0);
+
+      console.log(
+        'Top results:',
+        topResults.map((result) => result.email?.subject),
+      );
 
       const emailSnippets = [
         '## Email Snippets',
