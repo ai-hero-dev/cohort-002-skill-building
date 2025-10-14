@@ -2,14 +2,22 @@
 
 ## Section 01: Retrieval Skill Building
 
-### [01.01 - BM25](./exercises/01-retrieval-skill-building/01.01-bm25/explainer/readme.md) (Explainer)
+### [01.01 - Retrieval Intro](./exercises/01-retrieval-skill-building/01.01-retrieval-intro/speaker-notes.md) (Intro)
+
+- What retrieval is: connecting LLMs to private/external data
+- Public vs private data retrieval approaches
+- Retrieval-Augmented Generation (RAG) concept
+- Foundation for personal assistant architecture
+- Section roadmap: BM25 → embeddings → rank fusion → query rewriting → reranking
+
+### [01.02 - BM25](./exercises/01-retrieval-skill-building/01.02-bm25/explainer/readme.md) (Explainer)
 
 - Keyword-based search using BM25 algorithm
 - Term frequency & inverse document frequency scoring
 - Document length normalization
 - Understanding BM25 limitations: no semantic understanding, requires exact keyword matching
 
-### [01.02 - Retrieval with BM25](./exercises/01-retrieval-skill-building/01.02-retrieval-with-bm25/problem/readme.md) (Problem)
+### [01.03 - Retrieval with BM25](./exercises/01-retrieval-skill-building/01.03-retrieval-with-bm25/problem/readme.md) (Problem)
 
 - Generate keywords from conversation history using `streamObject`
 - Implement BM25 search with `okapibm25` package
@@ -17,7 +25,7 @@
 - Use LLM to answer questions with retrieved email context
 - Format message history for LLM consumption
 
-### [01.03 - Embeddings](./exercises/01-retrieval-skill-building/01.03-embeddings/problem/readme.md) (Problem)
+### [01.04 - Embeddings](./exercises/01-retrieval-skill-building/01.04-embeddings/problem/readme.md) (Problem)
 
 - Semantic search via embeddings (vector representations of text)
 - Use `embedMany` to create corpus embeddings
@@ -26,7 +34,7 @@
 - Compare semantic vs keyword-based retrieval performance
 - Understand when embeddings outperform keyword search
 
-### [01.04 - Rank Fusion](./exercises/01-retrieval-skill-building/01.04-rank-fusion/explainer/readme.md) (Explainer)
+### [01.05 - Rank Fusion](./exercises/01-retrieval-skill-building/01.05-rank-fusion/explainer/readme.md) (Explainer)
 
 - Reciprocal rank fusion (RRF) algorithm for combining rankings
 - Merge BM25 + semantic search results
@@ -34,7 +42,7 @@
 - Position-based scoring formula: `1/(k+rank)`
 - Leverage complementary strengths of multiple retrieval methods
 
-### [01.05 - Query Rewriting](./exercises/01-retrieval-skill-building/01.05-query-rewriting/problem/readme.md) (Problem)
+### [01.06 - Query Rewriting](./exercises/01-retrieval-skill-building/01.06-query-rewriting/problem/readme.md) (Problem)
 
 - Pre-retrieval optimization via query rewriter LLM
 - Convert long conversation history to focused, refined query
@@ -42,7 +50,7 @@
 - Improve semantic search precision
 - Generate both keywords (for BM25) and search query (for embeddings) in single call
 
-### [01.06 - Reranking](./exercises/01-retrieval-skill-building/01.06-reranking/problem/readme.md) (Problem)
+### [01.07 - Reranking](./exercises/01-retrieval-skill-building/01.07-reranking/problem/readme.md) (Problem)
 
 - Post-retrieval filtering via reranker LLM
 - Pass top 30 results to reranker, return most relevant IDs only
