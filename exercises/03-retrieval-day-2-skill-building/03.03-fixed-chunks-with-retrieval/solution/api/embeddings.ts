@@ -3,8 +3,12 @@ import { cosineSimilarity, embed, embedMany } from 'ai';
 import { existsSync, mkdirSync } from 'fs';
 import { readFile, writeFile } from 'fs/promises';
 import path from 'path';
+import { createChunks, type Chunk } from './utils.ts';
 
-export type Embeddings = Record<string, number[]>;
+export type Embeddings = Record<
+  string,
+  { content: string; embedding: number[] }
+>;
 
 const getExistingEmbeddingsPath = (cacheKey: string) => {
   return path.resolve(process.cwd(), 'data', `${cacheKey}.json`);
@@ -52,48 +56,60 @@ const myEmbeddingModel = google.textEmbeddingModel(
   'text-embedding-004',
 );
 
-export const embedEmails = async (
-  cacheKey: string,
-): Promise<Embeddings> => {
-  const emails = await loadEmails();
+export const embedChunks = async (): Promise<Embeddings> => {
+  const chunks = await createChunks();
 
   const existingEmbeddings =
-    await getExistingEmbeddings(cacheKey);
+    (await getExistingEmbeddings(EMBED_CACHE_KEY)) || {};
 
-  if (existingEmbeddings) {
+  // Determine which chunks need embedding
+  const chunksToEmbed = chunks.filter(
+    (chunk) => !existingEmbeddings[chunk.id],
+  );
+
+  console.log(
+    `Total chunks: ${chunks.length}, Already embedded: ${chunks.length - chunksToEmbed.length}, Need embedding: ${chunksToEmbed.length}`,
+  );
+
+  if (chunksToEmbed.length === 0) {
+    console.log('All chunks already embedded');
     return existingEmbeddings;
   }
 
-  const embeddings: Embeddings = {};
+  const embeddings: Embeddings = { ...existingEmbeddings };
 
-  // Chunk the values into batches of 99
-  const chunkSize = 99;
-  const chunks = [];
-  for (let i = 0; i < emails.length; i += chunkSize) {
-    chunks.push(emails.slice(i, i + chunkSize));
+  // Batch chunks into groups of 99 for API efficiency
+  const batchSize = 99;
+  const batches = [];
+  for (let i = 0; i < chunksToEmbed.length; i += batchSize) {
+    batches.push(chunksToEmbed.slice(i, i + batchSize));
   }
 
-  // Process each chunk sequentially
-  let processedCount = 0;
-  for (const chunk of chunks) {
-    const embedManyResult = await embedLotsOfText(chunk);
+  // Process each batch sequentially
+  for (const batch of batches) {
+    const embedManyResult = await embedLotsOfText(batch);
 
-    embedManyResult.forEach((embedding) => {
-      embeddings[embedding.id] = embedding.embedding;
+    embedManyResult.forEach((result) => {
+      embeddings[result.id] = {
+        content: result.content,
+        embedding: result.embedding,
+      };
     });
 
-    processedCount += chunk.length;
+    console.log(
+      `Embedded batch of ${batch.length} chunks (${Object.keys(embeddings).length}/${chunks.length} total)`,
+    );
   }
 
-  await saveEmbeddings(cacheKey, embeddings);
+  await saveEmbeddings(EMBED_CACHE_KEY, embeddings);
 
   return embeddings;
 };
 
 export const searchChunksViaEmbeddings = async (
-  chunks: string[],
+  chunks: Chunk[],
   query: string,
-) => {
+): Promise<{ chunk: string; score: number }[]> => {
   const embeddings =
     await getExistingEmbeddings(EMBED_CACHE_KEY);
 
@@ -102,44 +118,45 @@ export const searchChunksViaEmbeddings = async (
       `Embeddings not yet created under this cache key: ${EMBED_CACHE_KEY}`,
     );
   }
-  const emailsMap = new Map(
-    emails.map((email) => [email.id, email]),
-  );
+
+  // Create a map of current chunks by ID
+  const chunkMap = new Map(chunks.map((c) => [c.id, c.content]));
 
   const queryEmbedding = await embedOnePieceOfText(query);
 
-  const scores = Object.entries(embeddings).map(
-    ([key, value]) => {
+  // Only score chunks that exist in current dataset
+  const scores = Object.entries(embeddings)
+    .filter(([id]) => chunkMap.has(id))
+    .map(([id, data]) => {
       return {
-        score: calculateScore(queryEmbedding, value),
-        email: emailsMap.get(key)!,
+        score: calculateScore(queryEmbedding, data.embedding),
+        chunk: data.content,
       };
-    },
-  );
+    });
 
   return scores.sort((a, b) => b.score - a.score);
 };
 
-export const EMBED_CACHE_KEY = 'emails-google';
+export const EMBED_CACHE_KEY = 'book-chunks-google';
 
 const embedLotsOfText = async (
-  emails: Email[],
+  chunks: Chunk[],
 ): Promise<
   {
     id: string;
+    content: string;
     embedding: number[];
   }[]
 > => {
   const result = await embedMany({
     model: myEmbeddingModel,
-    values: emails.map(
-      (email) => `${email.subject} ${email.body}`,
-    ),
+    values: chunks.map((chunk) => chunk.content),
     maxRetries: 0,
   });
 
   return result.embeddings.map((embedding, index) => ({
-    id: emails[index]!.id,
+    id: chunks[index]!.id,
+    content: chunks[index]!.content,
     embedding,
   }));
 };

@@ -1,12 +1,9 @@
 import { runLocalDevServer } from '#shared/run-local-dev-server.ts';
-import {
-  EMBED_CACHE_KEY,
-  embedEmails,
-} from './api/embeddings.ts';
+import { embedChunks } from './api/embeddings.ts';
 
-console.log('Embedding Emails');
+console.log('Embedding book chunks');
 
-await embedEmails(EMBED_CACHE_KEY);
+await embedChunks();
 
 console.log('Embedding complete');
 

@@ -8,7 +8,7 @@ const App = () => {
   const { messages, sendMessage } = useChat({});
 
   const [input, setInput] = useState(
-    `What did David say about the mortgage application?`,
+    `Teach me about generic types`,
   );
 
   console.log(messages);
