@@ -107,37 +107,37 @@
 
 - Token-based chunking with overlap using `TokenTextSplitter`
 - Parameters: chunk size (300 tokens) + overlap (50 tokens)
-- Demo implementation showing document splitting
+- Playground UI to explore chunk output on TypeScript book dataset
 - Understand overlap: preserve context across chunk boundaries
-- Prepare for integration with retrieval pipeline
+- Visualize chunk boundaries and sizes before retrieval integration
 
-### [03.03 - Fixed Chunks with Retrieval](./exercises/03-retrieval-day-2-skill-building/03.03-fixed-chunks-with-retrieval/problem/readme.md) (Problem)
+### [03.03 - Structural Chunking](./exercises/03-retrieval-day-2-skill-building/03.03-structural-chunking/explainer/readme.md) (Explainer)
 
-- Integrate fixed-size chunking with existing retrieval mechanism
+- Document structure-based chunking in same playground
+- Chunk by markdown structure: headings, sections, paragraphs using `RecursiveCharacterTextSplitter`
+- Why structural chunking: reduces wasteful information, preserves semantic boundaries
+- Particularly effective for markdown documents
+- Compare structural vs fixed-size chunking visually in playground
+- Still using TypeScript book dataset, no LLM integration yet
+
+### [03.04 - Retrieval with Chunks](./exercises/03-retrieval-day-2-skill-building/03.04-retrieval-with-chunks/explainer/readme.md) (Explainer)
+
+- Integrate chunking with retrieval techniques in playground
 - Apply BM25 keyword search to chunks
 - Embed each chunk separately for semantic search
 - Combine BM25 + embedding results via reciprocal rank fusion
-- Build complete chunked retrieval pipeline
-- Initial implementation (replaced by structural chunking in 03.04)
-
-### [03.04 - Structural Chunking](./exercises/03-retrieval-day-2-skill-building/03.04-structural-chunking/problem/readme.md) (Problem)
-
-- Replace 03.03 fixed-size implementation with document structure-based chunking
-- Chunk by markdown structure: headings, sections, paragraphs
-- Why structural chunking: reduces wasteful information, preserves semantic boundaries
-- Particularly effective for markdown documents
-- Maintain existing BM25 + embeddings + rank fusion integration
-- Compare structural vs fixed-size chunking performance
+- No LLM response generation yet - focus on retrieval quality
+- View top ranked chunks from search queries
 
 ### [03.05 - Reranking](./exercises/03-retrieval-day-2-skill-building/03.05-reranking/problem/readme.md) (Problem)
 
-- Post-retrieval filtering via reranker LLM
+- Post-retrieval filtering via reranker LLM in playground
 - Pass top 30 chunk results to reranker, return most relevant IDs only
 - Token optimization: return IDs not full content
 - Format chunks with IDs for LLM evaluation
 - Handle potential LLM hallucination of non-existent IDs
 - Trade latency for improved retrieval relevance
-- Applies reranking to chunked retrieval results
+- Still in playground, no final answer generation
 
 ## Section 04: Retrieval Day 2 Project Work
 
@@ -159,24 +159,25 @@
 - Demonstrates why chunking needed for irregular documents
 - Prepare for chunking exploration in 04.03
 
-### [04.03 - Chunking Playground](./exercises/04-retrieval-day-2-project-work/04.03-chunking-playground/explainer/readme.md) (Explainer)
+### [04.03 - Apply Chunking Algorithms](./exercises/04-retrieval-day-2-project-work/04.03-apply-chunking-algorithms/explainer/notes.md) (Explainer)
 
-- Reuse UI-based playground from project
-- Visually explore chunk output before embedding
-- Compare fixed-size vs structural chunking on your dataset
-- Inspect chunk boundaries, overlap, semantic coherence
-- Identify which chunking strategy works best for your data
-- Critical step: verify chunks look correct before retrieval
+- Apply lessons from Section 03 chunking techniques to own dataset
+- Experiment with fixed-size vs structural chunking approaches
+- Test different chunk sizes and overlap parameters
+- Integrate chunking with BM25 + embeddings + rank fusion from Section 03
+- No LLM hookup yet - focus on retrieval algorithm quality
+- Evaluate which chunking strategy works best for your data characteristics
+- Build complete retrieval pipeline: chunk → BM25/embeddings → RRF → rerank
 
-### [04.04 - Implementing Chunking in Retrieval](./exercises/04-retrieval-day-2-project-work/04.04-implementing-chunking-in-retrieval/explainer/readme.md) (Explainer)
+### [04.04 - Hook Up to Existing LLM](./exercises/04-retrieval-day-2-project-work/04.04-hook-up-to-existing-llm/explainer/notes.md) (Explainer)
 
-- Apply chosen chunking method from 04.03 exploration
-- Integrate chunking with BM25 + embeddings + rank fusion
-- Students pick fixed-size or structural based on findings
-- Embed each chunk separately for semantic search
-- Add reranking step to complete retrieval pipeline for notes
-- Build complete chunked retrieval pipeline matching email search capabilities
-- Apply all day 2 skill-building techniques (Section 03) to real project
+- Integrate chunked retrieval pipeline from 04.03 with LLM from Section 02
+- Connect retrieval results to existing chat interface
+- Generate keywords and search query using query rewriter
+- Pass top reranked chunks as context to LLM
+- Stream conversational answers based on retrieved note chunks
+- First time connecting chunks to LLM response generation in Day 2 flow
+- Apply complete RAG pattern to notes dataset
 
 ### [04.05 - Combining Multiple Data Sources](./exercises/04-retrieval-day-2-project-work/04.05-combining-multiple-data-sources/explainer/readme.md) (Explainer)
 
