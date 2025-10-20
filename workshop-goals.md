@@ -139,7 +139,51 @@
 
 ## Section 04: Retrieval Day 2 Project Work
 
-_placeholder_
+### [04.01 - Grabbing Your Own Dataset](./exercises/04-retrieval-day-2-project-work/04.01-grabbing-your-own-dataset/explainer/readme.md) (Explainer)
+
+- Choose dataset: notes, Google Docs, documentation sites, various sources
+- Different from day 1 email focus - more flexible dataset types
+- Export/gather data in format suitable for chunking
+- Alternatives: Notion exports, Obsidian vaults, blog posts, wikis
+- End with collection of documents ready to chunk
+- Optional: skip if using provided irregular dataset (04.02)
+
+### [04.02 - Exploring Our Dataset](./exercises/04-retrieval-day-2-project-work/04.02-exploring-our-dataset/explainer/readme.md) (Explainer)
+
+- Fallback dataset if students don't grab their own
+- Sarah Chen's personal notes and diary entries (fits existing email dataset narrative)
+- Messy, irregular structure: some entries very long, others short
+- Real-world personal knowledge base with varied document lengths
+- Demonstrates why chunking needed for irregular documents
+- Prepare for chunking exploration in 04.03
+
+### [04.03 - Chunking Playground](./exercises/04-retrieval-day-2-project-work/04.03-chunking-playground/explainer/readme.md) (Explainer)
+
+- Reuse UI-based playground from project
+- Visually explore chunk output before embedding
+- Compare fixed-size vs structural chunking on your dataset
+- Inspect chunk boundaries, overlap, semantic coherence
+- Identify which chunking strategy works best for your data
+- Critical step: verify chunks look correct before retrieval
+
+### [04.04 - Implementing Chunking in Retrieval](./exercises/04-retrieval-day-2-project-work/04.04-implementing-chunking-in-retrieval/explainer/readme.md) (Explainer)
+
+- Apply chosen chunking method from 04.03 exploration
+- Integrate chunking with BM25 + embeddings + rank fusion
+- Students pick fixed-size or structural based on findings
+- Embed each chunk separately for semantic search
+- Add reranking step to complete retrieval pipeline for notes
+- Build complete chunked retrieval pipeline matching email search capabilities
+- Apply all day 2 skill-building techniques (Section 03) to real project
+
+### [04.05 - Combining Multiple Data Sources](./exercises/04-retrieval-day-2-project-work/04.05-combining-multiple-data-sources/explainer/readme.md) (Explainer)
+
+- Combine emails + notes retrieval into LLM application from Section 02
+- Rank fusion of rank fusion: merge results from both datasets
+- Apply unified reranking across combined email + note results
+- Feed combined, reranked results to LLM for conversational answers
+- Demonstrates multi-corpus RAG with heterogeneous data sources
+- Project uses separate routes for email search and notes search
 
 ## Section 05: Memory Skill Building
 
