@@ -3,6 +3,7 @@
 ## Section 01: Retrieval Skill Building
 
 **Learning Goals:**
+
 - Understand RAG fundamentals and connecting LLMs to private data
 - Master keyword search (BM25) and semantic search (embeddings)
 - Combine multiple retrieval methods via rank fusion
@@ -61,10 +62,11 @@
 ## Section 02: Retrieval Project Work
 
 **Learning Goals:**
+
 - Apply Section 01 techniques to real project codebase
 - Build production-ready search with embedding cache
-- Implement conversational RAG with streaming and reranking
-- Transition from automatic RAG to agent-controlled tool orchestration
+- Build agent-controlled search tool with BM25 + embeddings + rank fusion
+- Configure multi-step agent workflows
 
 ### [02.01 - Building Your Own Dataset](./exercises/02-retrieval-project-work/02.01-building-your-own-dataset/explainer/readme.md) (Explainer)
 
@@ -83,31 +85,19 @@
 - Production alternative: pgvector in Postgres stores embeddings on database rows
 - Apply Section 01 retrieval skills to real project codebase
 
-### [02.03 - Building a Search Workflow](./exercises/02-retrieval-project-work/02.03-building-a-search-workflow/explainer/notes.md) (Explainer)
+### [02.03 - Adding Search Tool to Agent](./exercises/02-retrieval-project-work/02.03-adding-search-tool-to-agent/explainer/notes.md) (Explainer)
 
-- Build chat API route with `createUIMessageStream` for conversational retrieval
-- Generate keywords + search query from conversation via `generateObject` (query rewriting)
-- Integrate lesson 2.2 search algorithm (BM25 + embeddings + rank fusion)
-- Add mandatory reranking step: pass top 30 to reranker LLM, return relevant IDs only
-- Stream retrieved emails as custom data parts (`data-search-results`) before answer
-- Experiment with email formatting (JSON/markdown/minimal) and monitor token usage via `result.usage`
-- Learn formatting impact: different formats vary 30-50% in token consumption
-- Stream final answer with citations from retrieved email context
-
-### [02.04 - Agent-Controlled Search Tools](./exercises/02-retrieval-project-work/02.04-agent-controlled-search-tools/explainer/notes.md) (Explainer)
-
-- Convert automatic RAG flow (lesson 2.3) to agent-driven tool orchestration
-- Build `searchSemanticEmails` tool: BM25 + embeddings + RRF + reranking, metadata only
-- Build `filterEmails` tool: traditional filtering (`from`, `contains`, `limit`, `contentLevel`)
-- `contentLevel` union: `subjectOnly` (metadata), `fullContent` (with body), `fullThread` (entire thread)
-- Build `getEmailById` tool: targeted retrieval after metadata scan, optional thread inclusion
+- Build chat API route with `createUIMessageStream` for agent-driven search
+- Build `searchSemanticEmails` tool using lesson 2.2 algorithm (BM25 + embeddings + RRF)
+- Agent generates keywords + search query via tool parameters
 - Configure `stopWhen: stepCountIs(5)` for multi-tool workflows
 - Apply Anthropic prompt template: task context → background data → rules → the ask
-- Agent autonomy: semantic vs filter search, metadata scan → targeted retrieval patterns
+- Stream conversational answers based on retrieved email context
 
 ## Section 03: Retrieval Day 2 Skill Building
 
 **Learning Goals:**
+
 - Understand chunking problem: context window fairness for irregular documents
 - Compare fixed-size (token-based) vs structural (markdown-based) chunking
 - Apply BM25, embeddings, and rank fusion to chunks
@@ -115,13 +105,13 @@
 
 ### [03.01 - Chunking Intro](./exercises/03-retrieval-day-2-skill-building/03.01-chunking-intro/explainer/notes.md) (Explainer)
 
-- Irregular datasets (docs, notes) need chunking; emails don't (already uniform)
+- Irregular datasets (docs, notes) often need chunking; emails can benefit too (long threads, quoted text)
 - Core problem: large chunks dominate context window, crowd out small relevant sections
 - Context fairness: 8k window fits 1 giant section OR 20 small sections
 - Wasteful info issue: fixed chunks may contain irrelevant text
-- Two approaches preview: fixed-size (token-based + overlap) vs structural (markdown boundaries)
+- Two approaches preview: fixed-size (token-based + overlap) vs structural (markdown/semantic boundaries)
 - Visualize problem: section length distribution shows 100-10,000+ char variance
-- Foundation for 03.02 (fixed chunking), 03.04 (structural), 03.05 (reranking)
+- Foundation for 03.02 (fixed chunking), 03.03 (structural), 03.04 (retrieval), 03.05 (reranking)
 
 ### [03.02 - Fixed Size Chunks](./exercises/03-retrieval-day-2-skill-building/03.02-fixed-size-chunks/explainer/readme.md) (Explainer)
 
@@ -162,61 +152,52 @@
 ## Section 04: Retrieval Day 2 Project Work
 
 **Learning Goals:**
-- Apply chunking techniques to irregular document datasets (notes, docs)
-- Integrate chunked retrieval with existing chat interface
-- Combine multiple data sources (emails + notes) via unified reranking
-- Build complete multi-corpus RAG system
 
-### [04.01 - Grabbing Your Own Dataset](./exercises/04-retrieval-day-2-project-work/04.01-grabbing-your-own-dataset/explainer/readme.md) (Explainer)
+- Apply chunking and reranking to email dataset
+- Build multi-tool agent architecture with custom filters
+- Implement metadata-first retrieval patterns for efficient context usage
+- Master advanced agentic search techniques
 
-- Choose dataset: notes, Google Docs, documentation sites, various sources
-- Different from day 1 email focus - more flexible dataset types
-- Export/gather data in format suitable for chunking
-- Alternatives: Notion exports, Obsidian vaults, blog posts, wikis
-- End with collection of documents ready to chunk
-- Optional: skip if using provided irregular dataset (04.02)
+### [04.01 - Chunking Emails Playground](./exercises/04-retrieval-day-2-project-work/04.01-chunking-emails-playground/explainer/notes.md) (Explainer)
 
-### [04.02 - Exploring Our Dataset](./exercises/04-retrieval-day-2-project-work/04.02-exploring-our-dataset/explainer/readme.md) (Explainer)
+- Apply Section 03 chunking techniques to emails dataset in playground
+- Experiment with structural chunking (email threads, quoted replies)
+- Experiment with fixed-size chunking for long email bodies
+- Visualize chunk boundaries and sizes on email corpus
+- Understand when chunking benefits emails: long threads, attachments, quoted text
+- Foundation for integrating chunking into search tool
 
-- Fallback dataset if students don't grab their own
-- Sarah Chen's personal notes and diary entries (fits existing email dataset narrative)
-- Messy, irregular structure: some entries very long, others short
-- Real-world personal knowledge base with varied document lengths
-- Demonstrates why chunking needed for irregular documents
-- Prepare for chunking exploration in 04.03
+### [04.02 - Reranking & Chunking in Search Tool](./exercises/04-retrieval-day-2-project-work/04.02-reranking-and-chunking-in-search-tool/explainer/notes.md) (Explainer)
 
-### [04.03 - Apply Chunking Algorithms](./exercises/04-retrieval-day-2-project-work/04.03-apply-chunking-algorithms/explainer/notes.md) (Explainer)
+- Add chunking to `searchSemanticEmails` tool from lesson 2.3
+- Chunk emails before BM25 + embeddings + RRF retrieval
+- Add mandatory reranking step: pass top 30 chunks to reranker LLM, return relevant IDs only
+- Token optimization: reranker returns chunk IDs not full content
+- Handle LLM hallucination of non-existent chunk IDs
+- Trade latency for improved retrieval precision
 
-- Apply lessons from Section 03 chunking techniques to own dataset
-- Experiment with fixed-size vs structural chunking approaches
-- Test different chunk sizes and overlap parameters
-- Integrate chunking with BM25 + embeddings + rank fusion from Section 03
-- No LLM hookup yet - focus on retrieval algorithm quality
-- Evaluate which chunking strategy works best for your data characteristics
-- Build complete retrieval pipeline: chunk → BM25/embeddings → RRF → rerank
+### [04.03 - Custom Filter Tools](./exercises/04-retrieval-day-2-project-work/04.03-custom-filter-tools/explainer/notes.md) (Explainer)
 
-### [04.04 - Hook Up to Existing LLM](./exercises/04-retrieval-day-2-project-work/04.04-hook-up-to-existing-llm/explainer/notes.md) (Explainer)
+- Build `filterEmails` tool for traditional filtering alongside semantic search
+- Parameters: `from`, `to`, `contains`, `before`, `after`, `limit`, `contentLevel`
+- `contentLevel` union: `subjectOnly` (metadata), `fullContent` (with body), `fullThread` (entire thread)
+- Agent chooses between semantic search vs filter search based on query type
+- Combine tools in multi-step workflows with `stopWhen: stepCountIs(5)`
+- System prompt engineering: guide agent on when to use each tool
 
-- Integrate chunked retrieval pipeline from 04.03 with LLM from Section 02
-- Connect retrieval results to existing chat interface
-- Generate keywords and search query using query rewriter
-- Pass top reranked chunks as context to LLM
-- Stream conversational answers based on retrieved note chunks
-- First time connecting chunks to LLM response generation in Day 2 flow
-- Apply complete RAG pattern to notes dataset
+### [04.04 - Metadata-First Retrieval Pattern](./exercises/04-retrieval-day-2-project-work/04.04-metadata-first-retrieval-pattern/explainer/notes.md) (Explainer)
 
-### [04.05 - Combining Multiple Data Sources](./exercises/04-retrieval-day-2-project-work/04.05-combining-multiple-data-sources/explainer/readme.md) (Explainer)
-
-- Combine emails + notes retrieval into LLM application from Section 02
-- Rank fusion of rank fusion: merge results from both datasets
-- Apply unified reranking across combined email + note results
-- Feed combined, reranked results to LLM for conversational answers
-- Demonstrates multi-corpus RAG with heterogeneous data sources
-- Project uses separate routes for email search and notes search
+- Modify `searchSemanticEmails` and `filterEmails` to return metadata only by default
+- Build `getEmailById` tool: accepts array of email IDs for targeted full content retrieval
+- Optional `includeThread` parameter to retrieve entire conversation thread
+- Metadata scan → targeted retrieval pattern: agent browses subjects first, fetches content selectively
+- Token efficiency: avoid loading full email bodies until agent confirms relevance
+- Multi-step agentic workflow: search → filter results → fetch specific emails → answer
 
 ## Section 05: Memory Skill Building
 
 **Learning Goals:**
+
 - Build persistent memory system with CRUD operations
 - Distinguish permanent vs situational information
 - Control memory creation via agent tools vs automatic extraction
@@ -261,6 +242,7 @@
 ## Section 06: Memory Project Work
 
 **Learning Goals:**
+
 - Implement memory loading and formatting for LLM consumption
 - Compare approaches: tool-controlled vs automatic vs user-confirmed creation
 - Understand tradeoffs: transparency, latency, cost, user control
@@ -309,6 +291,7 @@
 ## Section 07: Evals Skill Building
 
 **Learning Goals:**
+
 - Test agent behavior systematically with Evalite framework
 - Verify tool invocation and parameter correctness
 - Generate synthetic test datasets using LLMs
@@ -336,6 +319,7 @@
 ## Section 08: Evals Project Work
 
 **Learning Goals:**
+
 - Evaluate memory extraction accuracy with operation-specific scorers
 - Generate synthetic test datasets (32 cases across 4 operation types)
 - Compare RAG vs agentic search approaches experimentally
@@ -373,25 +357,13 @@
 - Focus on mechanism quality, not agent output
 - Catch regressions when changing search implementation or tuning parameters
 
-### [08.04 - Comparing Semantic Search with Agentic Search](./exercises/08-evals-project-work/08.04-comparing-semantic-search-with-agentic-search/explainer/notes.md) (Explainer)
+### [08.04 - LLM-as-Judge Scorer](./exercises/08-evals-project-work/08.04-llm-as-judge-scorer/explainer/notes.md) (Explainer)
 
-- Comparative evaluation using `evalite.each` for variant comparison
-- Experiment-driven testing: treat eval as experiment comparing two approaches
-- Semantic search variant: upfront retrieval (BM25 + embeddings + RRF) then answer
-- Agentic search variant: LLM uses tools (searchSemanticEmails, filterEmails, getEmailById)
-- Test cases focus on answer correctness, not retrieval quality
-- Manual answer inspection (defer LLM-as-judge scorer to next lesson)
-- Edge cases expose boundaries: multi-hop queries, filtering needs, thread following, simple facts
-- Identify when agents excel (complex multi-step) vs RAG sufficient (simple lookups)
-- Experimental mindset: discover approach strengths/weaknesses through systematic comparison
-
-### [08.05 - LLM-as-Judge Scorer](./exercises/08-evals-project-work/08.05-llm-as-judge-scorer/explainer/notes.md) (Explainer)
-
-- Scale lesson 6.4 experiment with automated scoring via LLM-as-judge
+- Build LLM-as-judge scorer for automated answer quality evaluation
 - Implement factuality scorer comparing generated vs expected answers (inspired by Braintrust)
 - Multiple-choice verdict format: subset (0.4), superset (0.6), exact (1.0), disagreement (0.0), equivalent (1.0)
 - Request reasoning before verdict for transparency and accuracy
-- Integrate scorer into `evalite.each` from lesson 6.4
+- Apply scorer to retrieval test cases from lesson 8.3
 - Validate LLM judge decisions via spot-checking 5-10 cases
 - Scale test dataset to 20-50 cases now that scoring is automated
 - Understand tradeoffs: cost vs scalability, consistency vs human judgment
@@ -400,6 +372,7 @@
 ## Section 09: Human-in-the-Loop Skill Building
 
 **Learning Goals:**
+
 - Balance LLM autonomy vs risk management with human oversight
 - Implement action lifecycle with custom data parts (start, decision, end)
 - Build approval/rejection flow with user feedback
@@ -457,6 +430,7 @@
 ## Section 10: Human-in-the-Loop Project Work
 
 **Learning Goals:**
+
 - Implement destructive tools with API integrations (email, GitHub, calendar)
 - Apply HITL harness to real assistant project
 - Build thread-scoped permission system to reduce approval friction
