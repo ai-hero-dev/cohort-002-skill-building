@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "ai-hero-cli exercise",
     "exercise": "ai-hero-cli exercise",
-    "prepare": "husky"
+    "prepare": "husky",
+    "get-diffs": "ai-hero-cli internal get-diffs --branch=live-run-through --project-repo=../cohort-002-project"
   },
   "keywords": [],
   "author": "",
@@ -17,10 +18,10 @@
   },
   "packageManager": "pnpm@9.12.3+sha512.cce0f9de9c5a7c95bef944169cc5dfe8741abfb145078c0d508b868056848a87c81e626246cb60967cbd7fd29a6c062ef73ff840d96b3c86c40ac92cf4a813ee",
   "dependencies": {
-    "@ai-sdk/anthropic": "^2.0.33",
-    "@ai-sdk/google": "2.0.23",
-    "@ai-sdk/openai": "^2.0.52",
-    "@ai-sdk/react": "2.0.76",
+    "@ai-sdk/anthropic": "^2.0.39",
+    "@ai-sdk/google": "2.0.25",
+    "@ai-sdk/openai": "^2.0.57",
+    "@ai-sdk/react": "2.0.82",
     "@hono/node-server": "^1.15.0",
     "@langchain/textsplitters": "^0.1.0",
     "@opentelemetry/auto-instrumentations-node": "^0.62.0",
@@ -34,9 +35,9 @@
     "@types/prompts": "^2.4.9",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
-    "ai": "5.0.76",
+    "ai": "5.0.82",
     "drizzle-orm": "^0.44.4",
-    "evalite": "^0.11.4",
+    "evalite": "^0.17.1",
     "hono": "^4.8.4",
     "js-tiktoken": "^1.0.21",
     "langfuse": "^3.38.4",
@@ -54,12 +55,12 @@
     "tailwindcss": "^4.1.11",
     "typescript": "^5.8.3",
     "vite": "^7.0.2",
-    "vitest": "^3.2.4",
+    "vitest": "^4.0.4",
     "zod": "^4.0.8"
   },
   "devDependencies": {
     "@types/papaparse": "^5.3.16",
-    "ai-hero-cli": "^0.1.1",
+    "ai-hero-cli": "^0.2.0",
     "husky": "^9.1.7",
     "prettier": "^3.6.2",
     "tailwind-scrollbar": "^4.0.2",
