@@ -17,7 +17,6 @@ import {
 
 export type MyMessage = UIMessage<unknown, {}>;
 
-
 const formatMemory = (memory: DB.MemoryItem) => {
   return [
     `Memory: ${memory.memory}`,
@@ -32,6 +31,7 @@ export const POST = async (req: Request): Promise<Response> => {
   const memories = await loadMemories();
 
   const memoriesText = memories.map(formatMemory).join('\n\n');
+
   const stream = createUIMessageStream<MyMessage>({
     execute: async ({ writer }) => {
       const result = streamText({
@@ -90,6 +90,8 @@ export const POST = async (req: Request): Promise<Response> => {
       });
 
       const newMemories = memoriesResult.object.memories;
+
+      console.log('newMemories', newMemories);
 
       saveMemories(
         newMemories.map((memory) => ({
