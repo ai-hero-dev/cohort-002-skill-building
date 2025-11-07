@@ -1,46 +1,43 @@
-import { stepCountIs, type UIMessage } from 'ai';
+import { createUIMessageFixture } from '#shared/create-ui-message-fixture.ts';
+import { google } from '@ai-sdk/google';
+import { stepCountIs } from 'ai';
 import { evalite } from 'evalite';
 import { runAgent } from './agent.ts';
-import { google } from '@ai-sdk/google';
 
 evalite('Agent Tool Call Evaluation', {
   data: [
     {
-      input: ['What is the weather in San Francisco right now?'],
+      input: createUIMessageFixture(
+        'What is the weather in San Francisco right now?',
+      ),
       expected: { tool: 'checkWeather' },
     },
     {
-      input: [
+      input: createUIMessageFixture(
         'Create a spreadsheet called "Q4 Sales" with columns for Date, Product, and Revenue',
-      ],
+      ),
       expected: { tool: 'createSpreadsheet' },
     },
     {
-      input: [
+      input: createUIMessageFixture(
         'Send an email to john@example.com with subject "Meeting Tomorrow" and body "Don\'t forget our 2pm meeting"',
-      ],
+      ),
       expected: { tool: 'sendEmail' },
     },
     {
-      input: ['Translate "Hello world" to Spanish'],
+      input: createUIMessageFixture(
+        'Translate "Hello world" to Spanish',
+      ),
       expected: { tool: 'translateText' },
     },
     {
-      input: [
+      input: createUIMessageFixture(
         'Set a reminder for tomorrow at 9am to call the dentist',
-      ],
+      ),
       expected: { tool: 'setReminder' },
     },
   ],
-  task: async (input) => {
-    const messages: UIMessage[] = input.map(
-      (message, index) => ({
-        id: String(index + 1),
-        role: index % 2 === 0 ? 'user' : 'assistant',
-        parts: [{ type: 'text', text: message }],
-      }),
-    );
-
+  task: async (messages) => {
     const result = runAgent(
       google('gemini-2.0-flash'),
       messages,
