@@ -29,7 +29,7 @@ evalite('Agent Tool Call Evaluation', {
     );
 
     const result = runAgent(
-      google('gemini-2.0-flash-exp'),
+      google('gemini-2.0-flash'),
       messages,
       stepCountIs(1),
     );

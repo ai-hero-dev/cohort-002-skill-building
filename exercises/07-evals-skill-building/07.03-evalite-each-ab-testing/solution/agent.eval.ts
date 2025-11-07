@@ -7,11 +7,11 @@ import { openai } from '@ai-sdk/openai';
 evalite.each([
   {
     name: 'Gemini 2.0 Flash Exp',
-    input: google('gemini-2.0-flash-exp'),
+    input: google('gemini-2.0-flash'),
   },
   {
     name: 'Gemini 2.0 Flash Thinking',
-    input: google('gemini-2.0-flash-thinking-exp-01-21'),
+    input: google('gemini-2.0-flash-lite'),
   },
   {
     name: 'GPT-4o',
@@ -24,11 +24,15 @@ evalite.each([
       expected: { tool: 'checkWeather' },
     },
     {
-      input: ['Create a spreadsheet called "Q4 Sales" with columns for Date, Product, and Revenue'],
+      input: [
+        'Create a spreadsheet called "Q4 Sales" with columns for Date, Product, and Revenue',
+      ],
       expected: { tool: 'createSpreadsheet' },
     },
     {
-      input: ['Send an email to john@example.com with subject "Meeting Tomorrow" and body "Don\'t forget our 2pm meeting"'],
+      input: [
+        'Send an email to john@example.com with subject "Meeting Tomorrow" and body "Don\'t forget our 2pm meeting"',
+      ],
       expected: { tool: 'sendEmail' },
     },
     {
@@ -36,25 +40,31 @@ evalite.each([
       expected: { tool: 'translateText' },
     },
     {
-      input: ['Set a reminder for tomorrow at 9am to call the dentist'],
+      input: [
+        'Set a reminder for tomorrow at 9am to call the dentist',
+      ],
       expected: { tool: 'setReminder' },
     },
   ],
   task: async (input, model) => {
-    const messages: UIMessage[] = input.map((message, index) => ({
-      id: String(index + 1),
-      role: index % 2 === 0 ? 'user' : 'assistant',
-      parts: [{ type: 'text', text: message }],
-    }));
+    const messages: UIMessage[] = input.map(
+      (message, index) => ({
+        id: String(index + 1),
+        role: index % 2 === 0 ? 'user' : 'assistant',
+        parts: [{ type: 'text', text: message }],
+      }),
+    );
 
     const result = runAgent(model, messages, stepCountIs(1));
 
     await result.consumeStream();
 
-    const toolCalls = (await result.toolCalls).map((toolCall) => ({
-      toolName: toolCall.toolName,
-      input: toolCall.input,
-    }));
+    const toolCalls = (await result.toolCalls).map(
+      (toolCall) => ({
+        toolName: toolCall.toolName,
+        input: toolCall.input,
+      }),
+    );
 
     return {
       toolCalls,

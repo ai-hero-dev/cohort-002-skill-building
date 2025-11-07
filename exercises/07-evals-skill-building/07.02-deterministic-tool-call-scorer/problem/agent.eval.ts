@@ -10,11 +10,15 @@ evalite('Agent Tool Call Evaluation', {
       expected: { tool: 'checkWeather' },
     },
     {
-      input: ['Create a spreadsheet called "Q4 Sales" with columns for Date, Product, and Revenue'],
+      input: [
+        'Create a spreadsheet called "Q4 Sales" with columns for Date, Product, and Revenue',
+      ],
       expected: { tool: 'createSpreadsheet' },
     },
     {
-      input: ['Send an email to john@example.com with subject "Meeting Tomorrow" and body "Don\'t forget our 2pm meeting"'],
+      input: [
+        'Send an email to john@example.com with subject "Meeting Tomorrow" and body "Don\'t forget our 2pm meeting"',
+      ],
       expected: { tool: 'sendEmail' },
     },
     {
@@ -22,25 +26,35 @@ evalite('Agent Tool Call Evaluation', {
       expected: { tool: 'translateText' },
     },
     {
-      input: ['Set a reminder for tomorrow at 9am to call the dentist'],
+      input: [
+        'Set a reminder for tomorrow at 9am to call the dentist',
+      ],
       expected: { tool: 'setReminder' },
     },
   ],
   task: async (input) => {
-    const messages: UIMessage[] = input.map((message, index) => ({
-      id: String(index + 1),
-      role: index % 2 === 0 ? 'user' : 'assistant',
-      parts: [{ type: 'text', text: message }],
-    }));
+    const messages: UIMessage[] = input.map(
+      (message, index) => ({
+        id: String(index + 1),
+        role: index % 2 === 0 ? 'user' : 'assistant',
+        parts: [{ type: 'text', text: message }],
+      }),
+    );
 
-    const result = runAgent(google('gemini-2.0-flash-exp'), messages, stepCountIs(1));
+    const result = runAgent(
+      google('gemini-2.0-flash'),
+      messages,
+      stepCountIs(1),
+    );
 
     await result.consumeStream();
 
-    const toolCalls = (await result.toolCalls).map((toolCall) => ({
-      toolName: toolCall.toolName,
-      input: toolCall.input,
-    }));
+    const toolCalls = (await result.toolCalls).map(
+      (toolCall) => ({
+        toolName: toolCall.toolName,
+        input: toolCall.input,
+      }),
+    );
 
     return {
       toolCalls,

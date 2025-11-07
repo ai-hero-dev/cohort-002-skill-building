@@ -7,11 +7,11 @@ import { openai } from '@ai-sdk/openai';
 evalite.each([
   {
     name: 'Gemini 2.0 Flash Exp',
-    input: google('gemini-2.0-flash-exp'),
+    input: google('gemini-2.0-flash'),
   },
   {
     name: 'Gemini 2.0 Flash Thinking',
-    input: google('gemini-2.0-flash-thinking-exp-01-21'),
+    input: google('gemini-2.0-flash-lite'),
   },
   {
     name: 'GPT-4o',
