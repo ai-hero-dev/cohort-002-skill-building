@@ -352,54 +352,43 @@
 
 **Learning Goals:**
 
-- Evaluate memory extraction accuracy with operation-specific scorers
-- Generate synthetic test datasets (32 cases across 4 operation types)
-- Compare RAG vs agentic search approaches experimentally
+- Evaluate memory extraction accuracy with manual test cases
+- Test memory retrieval quality with `search_memories()` function
+- Detect hallucinations in end-to-end agentic search system
 - Build LLM-as-judge scorer for automated answer quality evaluation
 
 ### [08.01 - Evaluating Memory Extraction](./exercises/08-evals-project-work/08.01-evaluating-memory-tool/explainer/notes.md) (Explainer)
 
 - Test memory extraction from conversation history using Evalite framework
 - Import `extractMemories()` function from project repo (refactored in 06.03)
-- Manual test case creation covering 5 scenarios: casual chat, personal info, contradictions, mixed content, multiple facts
+- Manual test case creation covering 5-10 scenarios: casual chat, personal info, contradictions, mixed content, multiple facts
 - Binary scorer: verify memory created/skipped when expected
 - Length scorer: prevent overly long memory content (>500 chars threshold)
-- Foundation for synthetic dataset generation in 08.02
 - Quantify extraction accuracy, catch regressions when changing prompts/models
 
-### [08.02 - Creating Memory Tool Evaluation Dataset](./exercises/08-evals-project-work/08.02-creating-memory-tool-evaluation-dataset/explainer/notes.md) (Explainer)
+### [08.02 - Evaluating Memory Retrieval](./exercises/08-evals-project-work/08.02-evaluating-memory-retrieval/explainer/notes.md) (Explainer)
 
-- Generate synthetic test cases using `generateObject` with operation-specific prompts
-- Separate generation (`generate-dataset.ts`) from evaluation (`main.ts`) for consistent testing
-- 4 operation types: create (new info), update (contradictions), delete (forget requests), no-action (casual chat)
-- Reusable generator function produces 8 cases per operation (32 total)
-- Test case schema: conversation turns + existing memories + expected operations
-- 4 separate Evalite suites with operation-specific scorers
-- Scale from 5 manual cases (08.01) to 32 synthetic cases
-- Identify which memory operations have low accuracy for prompt tuning
+- Test `search_memories()` function quality using Evalite framework
+- Import memory search function from project repo
+- Manual test case creation: 8-10 memory queries with expected memory IDs
+- Test semantic recall on memory collections (permanent memories from Section 6)
+- Graduated position scoring: 1.0 if top result, 0.5 if positions 2-5, 0 otherwise
+- Compare query strategies: keywords vs semantic search vs hybrid
+- Quantify retrieval precision across diverse memory queries
+- Catch regressions when tuning search parameters or ranking algorithms
 
-### [08.03 - Evaluating Retrieval](./exercises/08-evals-project-work/08.03-evaluating-retrieval/explainer/notes.md) (Explainer)
+### [08.03 - Evaluating End-to-End Agent](./exercises/08-evals-project-work/08.03-evaluating-end-to-end-agent/explainer/notes.md) (Explainer)
 
-- Test retrieval mechanism quality using production dataset
-- Manual dataset analysis: identify 8-10 key factual emails with clear retrieval signals
-- Create test cases: natural language queries + expected email IDs
-- Import search algorithm from project work (lesson 2.2: BM25 + embeddings + RRF)
-- Graduated scoring: 1.0 if top result, 0.5 if positions 2-5, 0 otherwise
-- Quantify retrieval accuracy across diverse question types (amounts, dates, reasons, people)
-- Focus on mechanism quality, not agent output
-- Catch regressions when changing search implementation or tuning parameters
-
-### [08.04 - LLM-as-Judge Scorer](./exercises/08-evals-project-work/08.04-llm-as-judge-scorer/explainer/notes.md) (Explainer)
-
-- Build LLM-as-judge scorer for automated answer quality evaluation
-- Implement factuality scorer comparing generated vs expected answers (inspired by Braintrust)
+- Test complete agentic search system built in earlier lessons (Sections 2-4)
+- Manual test case creation: 10-15 diverse queries with expected answers
+- Use 547-email dataset for comprehensive testing
+- Build LLM-as-judge factuality scorer for automated answer evaluation
 - Multiple-choice verdict format: subset (0.4), superset (0.6), exact (1.0), disagreement (0.0), equivalent (1.0)
-- Request reasoning before verdict for transparency and accuracy
-- Apply scorer to retrieval test cases from lesson 8.3
-- Validate LLM judge decisions via spot-checking 5-10 cases
-- Scale test dataset to 20-50 cases now that scoring is automated
-- Understand tradeoffs: cost vs scalability, consistency vs human judgment
-- Prompt engineering best practices: multiple-choice format, low temperature, clear rubric
+- Detect hallucinations: verify agent doesn't fabricate information
+- Request reasoning before verdict for transparency
+- Source citation validation: check if agent references retrieved context correctly
+- Scale testing with automated evaluation (20-50 cases feasible)
+- Identify which question types cause hallucinations or retrieval failures
 
 ## Section 09: Human-in-the-Loop Skill Building
 
