@@ -366,18 +366,7 @@
 - Length scorer: prevent overly long memory content (>500 chars threshold)
 - Quantify extraction accuracy, catch regressions when changing prompts/models
 
-### [08.02 - Evaluating Memory Retrieval](./exercises/08-evals-project-work/08.02-evaluating-memory-retrieval/explainer/notes.md) (Explainer)
-
-- Test `search_memories()` function quality using Evalite framework
-- Import memory search function from project repo
-- Manual test case creation: 8-10 memory queries with expected memory IDs
-- Test semantic recall on memory collections (permanent memories from Section 6)
-- Graduated position scoring: 1.0 if top result, 0.5 if positions 2-5, 0 otherwise
-- Compare query strategies: keywords vs semantic search vs hybrid
-- Quantify retrieval precision across diverse memory queries
-- Catch regressions when tuning search parameters or ranking algorithms
-
-### [08.03 - Evaluating End-to-End Agent](./exercises/08-evals-project-work/08.03-evaluating-end-to-end-agent/explainer/notes.md) (Explainer)
+### [08.02 - Evaluating End-to-End Agent](./exercises/08-evals-project-work/08.02-evaluating-end-to-end-agent/explainer/notes.md) (Explainer)
 
 - Test complete agentic search system built in earlier lessons (Sections 2-4)
 - Manual test case creation: 10-15 diverse queries with expected answers
