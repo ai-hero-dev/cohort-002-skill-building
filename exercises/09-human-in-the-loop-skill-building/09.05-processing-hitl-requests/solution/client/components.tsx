@@ -69,19 +69,6 @@ export const Message = ({
               );
             }
 
-            if (part.type === 'data-approval-end') {
-              return (
-                <div key={part.id} className="mb-4">
-                  <h2 className="text-sm font-medium mb-1">
-                    Tool output
-                  </h2>
-                  <p className="text-xs text-muted-foreground">
-                    {part.data.output.type}
-                  </p>
-                </div>
-              );
-            }
-
             if (part.type === 'data-approval-decision') {
               return (
                 <div key={part.id} className="mb-4">

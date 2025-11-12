@@ -1,10 +1,12 @@
 import { google } from '@ai-sdk/google';
 import {
+  convertToModelMessages,
   createUIMessageStream,
   createUIMessageStreamResponse,
   hasToolCall,
   stepCountIs,
   streamText,
+  type ModelMessage,
   type UIMessage,
 } from 'ai';
 import z from 'zod';
@@ -39,59 +41,40 @@ export type MyMessage = UIMessage<
       toolId: string;
       decision: ToolApprovalDecision;
     };
-    'approval-end': {
-      toolId: string;
-      output: {
-        message: string;
-      };
-    };
   }
 >;
 
-const getDiary = (messages: MyMessage[]): string => {
-  return messages
-    .map((message): string => {
-      return [
-        message.role === 'user'
-          ? '## User Message'
-          : '## Assistant Message',
-        message.parts
-          .map((part): string => {
-            if (part.type === 'text') {
-              return part.text;
-            }
+const annotateMessageHistory = (
+  messages: MyMessage[],
+): ModelMessage[] => {
+  const modelMessages = convertToModelMessages<MyMessage>(
+    messages,
+    {
+      convertDataPart(part) {
+        if (part.type === 'data-approval-request') {
+          return {
+            type: 'text',
+            text: `The assistant requested to send an email: To: ${part.data.tool.to}, Subject: ${part.data.tool.subject}, Content: ${part.data.tool.content}`,
+          };
+        }
+        if (part.type === 'data-approval-decision') {
+          if (part.data.decision.type === 'approve') {
+            return {
+              type: 'text',
+              text: 'The user approved the tool.',
+            };
+          }
+          return {
+            type: 'text',
+            text: `The user rejected the tool: ${part.data.decision.reason}`,
+          };
+        }
+        return part;
+      },
+    },
+  );
 
-            if (part.type === 'data-approval-request') {
-              if (part.data.tool.type === 'send-email') {
-                return [
-                  'The assistant requested to send an email:',
-                  `To: ${part.data.tool.to}`,
-                  `Subject: ${part.data.tool.subject}`,
-                  `Content: ${part.data.tool.content}`,
-                ].join('\n');
-              }
-
-              return '';
-            }
-
-            if (part.type === 'data-approval-decision') {
-              if (part.data.decision.type === 'approve') {
-                return 'The user approved the tool.';
-              }
-
-              return `The user rejected the tool: ${part.data.decision.reason}`;
-            }
-
-            if (part.type === 'data-approval-end') {
-              return `The tool was performed: ${part.data.output.message}`;
-            }
-
-            return '';
-          })
-          .join('\n\n'),
-      ].join('\n\n');
-    })
-    .join('\n\n');
+  return modelMessages;
 };
 
 export const POST = async (req: Request): Promise<Response> => {
@@ -134,6 +117,9 @@ export const POST = async (req: Request): Promise<Response> => {
 
   console.dir(hitlResult, { depth: null });
 
+  const annotatedMessageHistory =
+    annotateMessageHistory(messages);
+
   const stream = createUIMessageStream<MyMessage>({
     execute: async ({ writer }) => {
       const streamTextResponse = streamText({
@@ -143,7 +129,7 @@ export const POST = async (req: Request): Promise<Response> => {
           You will be given a diary of the conversation so far.
           The user's name is "John Doe".
         `,
-        prompt: getDiary(messages),
+        messages: annotatedMessageHistory,
         tools: {
           sendEmail: {
             description: 'Send an email',
