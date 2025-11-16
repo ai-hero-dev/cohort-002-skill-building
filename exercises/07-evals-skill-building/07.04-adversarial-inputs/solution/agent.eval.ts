@@ -4,6 +4,7 @@ import { runAgent } from './agent.ts';
 import { google } from '@ai-sdk/google';
 import { openai } from '@ai-sdk/openai';
 import { createUIMessageFixture } from '#shared/create-ui-message-fixture.ts';
+import { wrapAISDKModel } from 'evalite/ai-sdk';
 
 evalite.each([
   {
@@ -116,7 +117,11 @@ evalite.each([
     },
   ],
   task: async (messages, model) => {
-    const result = runAgent(model, messages, stepCountIs(1));
+    const result = runAgent(
+      wrapAISDKModel(model),
+      messages,
+      stepCountIs(1),
+    );
 
     await result.consumeStream();
 

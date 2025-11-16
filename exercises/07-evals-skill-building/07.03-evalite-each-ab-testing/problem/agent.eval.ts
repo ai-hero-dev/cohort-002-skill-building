@@ -3,6 +3,7 @@ import { evalite } from 'evalite';
 import { runAgent } from './agent.ts';
 import { google } from '@ai-sdk/google';
 import { createUIMessageFixture } from '#shared/create-ui-message-fixture.ts';
+import { wrapAISDKModel } from 'evalite/ai-sdk';
 
 // TODO: Add more models to compare different LLM performance
 // Try: 'gemini-2.0-flash', 'gemini-2.0-flash-lite', GPT-4o, Claude, etc.
@@ -45,7 +46,11 @@ evalite.each([
     },
   ],
   task: async (messages, model) => {
-    const result = runAgent(model, messages, stepCountIs(1));
+    const result = runAgent(
+      wrapAISDKModel(model),
+      messages,
+      stepCountIs(1),
+    );
 
     await result.consumeStream();
 

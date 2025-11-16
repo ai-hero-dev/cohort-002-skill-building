@@ -3,6 +3,7 @@ import { google } from '@ai-sdk/google';
 import { stepCountIs } from 'ai';
 import { evalite } from 'evalite';
 import { runAgent } from './agent.ts';
+import { wrapAISDKModel } from 'evalite/ai-sdk';
 
 evalite('Agent Tool Call Evaluation', {
   data: [
@@ -39,7 +40,7 @@ evalite('Agent Tool Call Evaluation', {
   ],
   task: async (messages) => {
     const result = runAgent(
-      google('gemini-2.0-flash'),
+      wrapAISDKModel(google('gemini-2.0-flash')),
       messages,
       stepCountIs(1),
     );

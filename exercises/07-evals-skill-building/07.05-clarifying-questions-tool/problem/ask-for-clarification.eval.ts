@@ -3,6 +3,7 @@ import { google } from '@ai-sdk/google';
 import { stepCountIs } from 'ai';
 import { evalite } from 'evalite';
 import { runAgent } from './agent.ts';
+import { wrapAISDKModel } from 'evalite/ai-sdk';
 
 evalite('Ask For Clarification Evaluation', {
   // TODO: Add 8-10 test cases with incomplete requests that should trigger
@@ -27,7 +28,7 @@ evalite('Ask For Clarification Evaluation', {
   ],
   task: async (input) => {
     const result = runAgent(
-      google('gemini-2.0-flash'),
+      wrapAISDKModel(google('gemini-2.0-flash')),
       input,
       stepCountIs(1),
     );
