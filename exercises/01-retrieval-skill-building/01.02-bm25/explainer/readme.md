@@ -1,55 +1,78 @@
+You might think we're going to start with embeddings for retrieval. They've been fashionable for the last couple of years, and many people associate them with LLM retrieval.
+
+Instead, we're going to start with something much simpler and incredibly useful: [BM25](/PLACEHOLDER/bm25-algorithm). It's a keyword search algorithm that's been running in production search engines for years.
+
+BM25 is cheaper to run than embeddings and more practical for many retrieval tasks. It's the perfect foundation before moving to more complex approaches.
+
 ## Steps To Complete
 
-- [ ] Understand what BM25 is and why it's useful for retrieval
-  - BM25 is a keyword search algorithm that has been used in production search engines for years
-  - It's simpler and more practical than embeddings for many retrieval tasks
-  - It's extremely cheap to run computationally
+### Understanding BM25
 
-### How BM25 Works
+- [ ] Learn what BM25 is and why it's useful for retrieval
 
-- [ ] Learn the three factors that BM25 uses to score documents
+[BM25](/PLACEHOLDER/bm25-algorithm) is a keyword search algorithm that balances simplicity with effectiveness. Unlike embedding-based approaches, it requires no model training and runs with minimal overhead.
 
-![How Does BM25 Work?](./explainer/how-does-bm25-work.png)
+- [ ] Understand the three factors that BM25 uses to score documents
 
-- [ ] Understand **Term Frequency**
-  - This measures how often keywords appear in a document
-  - Documents with more keyword matches score higher
+![How Does BM25 Work?](./how-does-bm25-work.png)
 
-- [ ] Understand **Inverse Document Frequency (IDF)**
-  - This prevents common terms from dominating the scoring
-  - Rare terms across the entire corpus score higher than common terms
-  - A keyword that appears in only a few documents is more meaningful than one that appears everywhere
+BM25 evaluates documents using three key metrics:
 
-- [ ] Understand **Length Normalization**
-  - This prevents longer documents from automatically scoring higher
-  - Without this, larger documents would dominate simply because they contain more words
+| Factor                               | Purpose                                 | Impact                                               |
+| ------------------------------------ | --------------------------------------- | ---------------------------------------------------- |
+| **Term Frequency**                   | How often keywords appear in a document | Documents with more keyword matches score higher     |
+| **Inverse Document Frequency (IDF)** | Rarity of the keyword across the corpus | Rare terms score higher than common terms            |
+| **Length Normalization**             | Adjusts for document length             | Prevents longer documents from automatically winning |
 
-### Exploring The BM25 Playground
+- [ ] Understand Term Frequency
+
+Term Frequency measures how often your keywords appear in a document. A document mentioning "mortgage" five times scores higher than one mentioning it once.
+
+Very common words can dominate across the entire corpus, which is why IDF is needed.
+
+- [ ] Understand Inverse Document Frequency (IDF)
+
+IDF prevents common terms from dominating the scoring. A keyword appearing in only a few documents is more meaningful than one appearing everywhere.
+
+"The" appears in nearly every document and scores low. "Mortgage" appears in fewer documents and scores high.
+
+- [ ] Understand Length Normalization
+
+Length Normalization prevents longer documents from automatically scoring higher just because they contain more words.
+
+Without this, a 10,000-word document would almost always rank above a 100-word document, regardless of relevance.
+
+### Exploring the BM25 Playground
 
 - [ ] Start the dev server by running `pnpm dev` and select this exercise
 
 - [ ] Review the dataset in the playground
-  - The playground contains 150 emails from a larger dataset
-  - You can search these emails using keywords
+
+The playground contains 150 curated emails. Each email has a subject line and body text that can be searched.
 
 - [ ] Test basic keyword searches
-  - Try searching for "David mortgage" (two separate keywords)
-  - Observe how emails are ranked by their BM25 scores
-  - Note that higher scores indicate more relevant matches
 
-- [ ] Test different search queries to understand BM25's behavior
-  - Search for "survey reports" and observe the results
-  - Try other keyword combinations to see how they're ranked
+Try searching for "David mortgage" (two separate keywords). Observe how emails are ranked by their [BM25](/PLACEHOLDER/bm25-algorithm) scores.
+
+Email #1 might score 5.5, Email #2 might score 4.8, and so on. Higher scores mean more relevant matches.
+
+- [ ] Test different search queries to understand BM25 behavior
+
+Search for "survey reports" and observe the results. Try other keyword combinations to see how they're ranked.
+
+Notice which emails rank at the top and which fall to the bottom. Patterns will emerge about what [BM25](/PLACEHOLDER/bm25-algorithm) considers relevant.
 
 - [ ] Identify weaknesses in BM25
-  - Search for a word like "home" and note if results don't include synonyms like "house"
-  - BM25 only matches exact keywords, not semantically similar terms
 
-### Understanding The Implementation
+Search for the word "home" and observe if results include semantically similar words like "house".
+
+[BM25](/PLACEHOLDER/bm25-algorithm) only matches exact keywords, not synonyms or related terms. This is its biggest limitation compared to embeddings-based approaches.
+
+### Understanding the Implementation
 
 - [ ] Examine the `explainer/api/emails.ts` file to see how BM25 is implemented
 
-The `searchEmails` function shows how the algorithm works:
+The `searchEmails` function demonstrates the core algorithm:
 
 ```ts
 const searchEmails = (
@@ -72,14 +95,17 @@ const searchEmails = (
 };
 ```
 
+This function combines the `subject` and `body`, converts everything to lowercase, and passes both the documents and keywords to the [BM25](/PLACEHOLDER/bm25-algorithm) implementation.
+
 - [ ] Note how the implementation combines email subject and body
-  - The content is converted to lowercase before being passed to BM25
-  - Keywords are also converted to lowercase
-  - Results are sorted by score in descending order
 
-- [ ] Review how the API endpoint uses the search function in `api/emails.ts`
+Content is converted to lowercase before being passed to [BM25](/PLACEHOLDER/bm25-algorithm). Keywords are also normalized to lowercase.
 
-The `GET` route shows the full flow:
+Results are sorted by score in descending order, so the most relevant emails appear first.
+
+- [ ] Review how the API endpoint uses the search function
+
+The `GET` route shows the complete flow from search query to response:
 
 ```ts
 export const GET = async (req: Request): Promise<Response> => {
@@ -106,11 +132,14 @@ export const GET = async (req: Request): Promise<Response> => {
 };
 ```
 
-- [ ] Observe that the search query is split into individual keywords by spaces
-  - Each keyword is trimmed of whitespace
-  - All keywords are passed to the BM25 algorithm together
+- [ ] Observe how search queries are parsed into keywords
+
+The search query is split by spaces into individual keywords, then each is trimmed of whitespace.
+
+All keywords are passed together to [BM25](/PLACEHOLDER/bm25-algorithm), which scores each document against all of them simultaneously.
 
 - [ ] Spend time experimenting with the playground to build intuition
-  - Try various searches to see how different queries perform
-  - Notice patterns in what scores highly
-  - Understand where BM25 excels and where it falls short
+
+Try various searches to see how different queries perform. Notice patterns in what scores highly.
+
+Pay attention to where [BM25](/PLACEHOLDER/bm25-algorithm) excels (exact keyword matching) and where it falls short (synonyms, semantic understanding, typos).
