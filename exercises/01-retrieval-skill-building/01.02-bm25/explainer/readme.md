@@ -1,28 +1,66 @@
-<!-- AI Generated, review carefully -->
+## Steps To Complete
 
-BM25 (Best Match 25) is a keyword-based search algorithm that ranks documents based on term frequency and document length normalization.
+- [ ] Understand what BM25 is and why it's useful for retrieval
+  - BM25 is a keyword search algorithm that has been used in production search engines for years
+  - It's simpler and more practical than embeddings for many retrieval tasks
+  - It's extremely cheap to run computationally
 
-It's the foundation for many search engines and retrieval systems, working well when you need to match specific keywords or phrases.
+### How BM25 Works
 
-## How BM25 Works
+- [ ] Learn the three factors that BM25 uses to score documents
 
-BM25 scores documents by:
+![How Does BM25 Work?](./explainer/how-does-bm25-work.png)
 
-1. **Term Frequency**: How often keywords appear in a document
-2. **Inverse Document Frequency**: How rare keywords are across all documents (rare terms score higher)
-3. **Document Length Normalization**: Prevents longer documents from being unfairly favored
+- [ ] Understand **Term Frequency**
+  - This measures how often keywords appear in a document
+  - Documents with more keyword matches score higher
 
-The algorithm returns a score for each document. Higher scores indicate better matches.
+- [ ] Understand **Inverse Document Frequency (IDF)**
+  - This prevents common terms from dominating the scoring
+  - Rare terms across the entire corpus score higher than common terms
+  - A keyword that appears in only a few documents is more meaningful than one that appears everywhere
 
-## The Code
+- [ ] Understand **Length Normalization**
+  - This prevents longer documents from automatically scoring higher
+  - Without this, larger documents would dominate simply because they contain more words
 
-In [`main.ts`](./main.ts), we load emails and use the `okapibm25` package to score them:
+### Exploring The BM25 Playground
+
+- [ ] Start the dev server by running `pnpm dev` and select this exercise
+
+- [ ] Review the dataset in the playground
+  - The playground contains 150 emails from a larger dataset
+  - You can search these emails using keywords
+
+- [ ] Test basic keyword searches
+  - Try searching for "David mortgage" (two separate keywords)
+  - Observe how emails are ranked by their BM25 scores
+  - Note that higher scores indicate more relevant matches
+
+- [ ] Test different search queries to understand BM25's behavior
+  - Search for "survey reports" and observe the results
+  - Try other keyword combinations to see how they're ranked
+
+- [ ] Identify weaknesses in BM25
+  - Search for a word like "home" and note if results don't include synonyms like "house"
+  - BM25 only matches exact keywords, not semantically similar terms
+
+### Understanding The Implementation
+
+- [ ] Examine the `explainer/api/emails.ts` file to see how BM25 is implemented
+
+The `searchEmails` function shows how the algorithm works:
 
 ```ts
-const searchEmails = (emails: Email[], keywords: string[]) => {
-  const scores: number[] = (BM25.default as any)(
-    emails.map((email) => `${email.subject} ${email.body}`),
-    keywords,
+const searchEmails = (
+  emails: Email[],
+  keywords: string[],
+): { email: Email; score: number }[] => {
+  const scores: number[] = (BM25 as any)(
+    emails.map((email) =>
+      `${email.subject} ${email.body}`.toLowerCase(),
+    ),
+    keywords.map((k) => k.toLowerCase()),
   );
 
   return scores
@@ -34,53 +72,45 @@ const searchEmails = (emails: Email[], keywords: string[]) => {
 };
 ```
 
-We combine subject and body text, pass keywords to BM25, and get back scores for ranking.
+- [ ] Note how the implementation combines email subject and body
+  - The content is converted to lowercase before being passed to BM25
+  - Keywords are also converted to lowercase
+  - Results are sorted by score in descending order
 
-## Try It Out
+- [ ] Review how the API endpoint uses the search function in `api/emails.ts`
 
-The playground includes different keyword combinations you can test:
+The `GET` route shows the full flow:
 
 ```ts
-// TODO: Try different keyword combinations:
-//
-// ['mortgage', 'pre-approval']
-// ['house', 'Chorlton', 'Victorian']
-// ['freelance', 'consulting', 'income']
-// ['offer', 'property', 'accepted']
-const keywords = ['mortgage', 'pre-approval'];
+export const GET = async (req: Request): Promise<Response> => {
+  const url = new URL(req.url);
+  const search = url.searchParams.get('search') || '';
+  const page = parseInt(url.searchParams.get('page') || '1', 10);
+  const pageSize = 20;
+
+  const emails = await loadEmails();
+  let emailsWithScores: { email: Email; score: number }[] = [];
+
+  if (search) {
+    // Perform BM25 search
+    const keywords = search.split(' ').map((s) => s.trim());
+    emailsWithScores = searchEmails(emails, keywords);
+  } else {
+    // Return all emails with zero scores
+    emailsWithScores = emails.map((email) => ({
+      email,
+      score: 0,
+    }));
+  }
+  // ... rest of pagination and response handling
+};
 ```
 
-Change the `keywords` array and see how results change. Notice:
+- [ ] Observe that the search query is split into individual keywords by spaces
+  - Each keyword is trimmed of whitespace
+  - All keywords are passed to the BM25 algorithm together
 
-- Exact keyword matches score highest
-- Documents with multiple keywords rank better
-- Documents without any keywords score zero and are filtered out
-
-## Strengths and Limitations
-
-**Strengths:**
-
-- Fast and efficient
-- Works well for exact keyword matching
-- No external API calls or embeddings needed
-- Deterministic results
-
-**Limitations:**
-
-- Doesn't understand semantic meaning (e.g., "home" vs "house")
-- Requires exact or similar keywords to find relevant results
-- Can't handle synonyms or related concepts
-
-Later exercises will explore semantic search (embeddings) and hybrid approaches (rank fusion) that address these limitations.
-
-## Steps To Complete
-
-- [ ] Run the explainer and observe the top results for the default keywords
-
-- [ ] Try each of the suggested keyword combinations in the TODO comment
-
-- [ ] Experiment with your own keyword combinations to search the email dataset
-
-- [ ] Notice which emails score zero and get filtered out
-
-- [ ] Compare how different combinations of keywords affect the ranking
+- [ ] Spend time experimenting with the playground to build intuition
+  - Try various searches to see how different queries perform
+  - Notice patterns in what scores highly
+  - Understand where BM25 excels and where it falls short
