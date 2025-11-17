@@ -4,7 +4,7 @@ That pattern is **human in the loop**.
 
 Instead of giving the AI full power to do anything it wants in the world, you make it check with you first before actually going and doing anything.
 
-## The ASDK v6 Announcement
+## The AI SDK v6 Announcement
 
 This material is in a funny spot because the [AI SDK](/PLACEHOLDER/ai-sdk) announced [v6](https://v6.ai-sdk.dev/docs/announcing-ai-sdk-6-beta) recently, which just adds a small extra couple of features on top of v5.
 
