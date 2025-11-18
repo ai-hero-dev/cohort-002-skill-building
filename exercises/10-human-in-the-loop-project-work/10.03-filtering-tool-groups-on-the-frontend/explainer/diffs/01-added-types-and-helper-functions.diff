@@ -1,0 +1,85 @@
+commit d65e7f820c7133f885aaed6f76f7bb77eb2f2107
+Author: Matt Pocock <team@aihero.dev>
+Date:   Fri Nov 14 14:11:35 2025 +0000
+
+    10.03.01 Added types and helper functions
+
+diff --git a/src/app/api/chat/apps-config.ts b/src/app/api/chat/apps-config.ts
+new file mode 100644
+index 0000000..50d68e7
+--- /dev/null
++++ b/src/app/api/chat/apps-config.ts
+@@ -0,0 +1,60 @@
++import { Calendar, CheckSquare, type LucideIcon } from "lucide-react";
++import type { ToolSet } from "ai";
++import type { MyMessage } from "./route";
++
++export type AppDefinition = {
++  id: string;
++  name: string;
++  icon: LucideIcon;
++  toolPrefix: string;
++};
++
++export const availableApps: AppDefinition[] = [
++  {
++    id: "calendar",
++    name: "Calendar",
++    icon: Calendar,
++    toolPrefix: "google_calendar_",
++  },
++  {
++    id: "tasks",
++    name: "Tasks",
++    icon: CheckSquare,
++    toolPrefix: "google_tasks_",
++  },
++];
++
++export const filterToolsByApps = (
++  tools: ToolSet,
++  appIds: string[]
++): ToolSet => {
++  if (appIds.length === 0) {
++    return {};
++  }
++
++  const prefixes = availableApps
++    .filter((app) => appIds.includes(app.id))
++    .map((app) => app.toolPrefix);
++
++  const filteredTools: ToolSet = {};
++
++  for (const [toolName, tool] of Object.entries(tools)) {
++    if (prefixes.some((prefix) => toolName.startsWith(prefix))) {
++      filteredTools[toolName] = tool;
++    }
++  }
++
++  return filteredTools;
++};
++
++export const parseAppIdsFromMessage = (
++  message: MyMessage | undefined
++): string[] => {
++  if (!message) return [];
++
++  const appIds = message.parts
++    .filter((part) => part.type === "data-app-tag")
++    .map((part) => part.data.appId);
++
++  return [...new Set(appIds)];
++};
+diff --git a/src/app/api/chat/route.ts b/src/app/api/chat/route.ts
+index 3a5f8eb..4c50b4d 100644
+--- a/src/app/api/chat/route.ts
++++ b/src/app/api/chat/route.ts
+@@ -38,7 +38,8 @@ const OLD_MESSAGES_TO_USE = 10;
+ export type MyMessage = UIMessage<
+   never,
+   {
+     "frontend-action": "refresh-sidebar";
++    "app-tag": { appId: string };
+   } & ToolApprovalDataParts,
+   InferUITools<ReturnType<typeof getTools>>
+ >;

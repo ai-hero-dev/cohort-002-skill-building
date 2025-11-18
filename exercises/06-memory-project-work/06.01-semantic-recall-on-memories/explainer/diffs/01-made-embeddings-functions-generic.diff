@@ -1,0 +1,436 @@
+commit 4710331e7a9d95ce313d81e6f90c064a0c93ea56
+Author: Matt Pocock <team@aihero.dev>
+Date:   Wed Nov 5 12:37:08 2025 +0000
+
+    06.01.01 Made embeddings functions generic
+
+diff --git a/src/app/api/chat/search-tool.ts b/src/app/api/chat/search-tool.ts
+index 1240687..af8faa1 100644
+--- a/src/app/api/chat/search-tool.ts
++++ b/src/app/api/chat/search-tool.ts
+@@ -1,7 +1,9 @@
+ import {
+   chunkEmails,
++  emailChunkToId,
++  emailChunkToText,
+   loadEmails,
+   reciprocalRankFusion,
+   searchWithBM25,
+   searchWithEmbeddings,
+ } from "@/app/search";
+@@ -14,78 +16,86 @@ const NUMBER_PASSED_TO_RERANKER = 30;
+ export const searchTool = (messages: UIMessage[]) =>
+   tool({
+     description:
+       "Search emails using both keyword and semantic search. Returns metadata with snippets only - use getEmails tool to fetch full content of specific emails.",
+     inputSchema: z.object({
+       keywords: z
+         .array(z.string())
+         .describe(
+           "Exact keywords for BM25 search (names, amounts, specific terms)"
+         )
+         .optional(),
+       searchQuery: z
+         .string()
+         .describe(
+           "Natural language query for semantic search (broader concepts)"
+         )
+         .optional(),
+     }),
+     execute: async ({ keywords, searchQuery }) => {
+       console.log("Keywords:", keywords);
+       console.log("Search query:", searchQuery);
+ 
+       const emails = await loadEmails();
+       const emailChunks = await chunkEmails(emails);
+ 
+       // Use search algorithm from lesson 2.2
+       const bm25Results = keywords
+-        ? await searchWithBM25(keywords, emailChunks)
++        ? await searchWithBM25(keywords, emailChunks, emailChunkToText)
+         : [];
+       const embeddingResults = searchQuery
+-        ? await searchWithEmbeddings(searchQuery, emailChunks)
++        ? await searchWithEmbeddings(searchQuery, emailChunks, emailChunkToText)
+         : [];
+-      const rrfResults = reciprocalRankFusion([
+-        // Only take the top NUMBER_PASSED_TO_RERANKER results from each search
+-        bm25Results.slice(0, NUMBER_PASSED_TO_RERANKER),
+-        embeddingResults.slice(0, NUMBER_PASSED_TO_RERANKER),
+-      ]);
++      const rrfResults = reciprocalRankFusion(
++        [
++          // Only take the top NUMBER_PASSED_TO_RERANKER results from each search
++          bm25Results.slice(0, NUMBER_PASSED_TO_RERANKER),
++          embeddingResults.slice(0, NUMBER_PASSED_TO_RERANKER),
++        ],
++        emailChunkToId
++      );
+ 
+       // Get conversation history without the tool calls
+       const conversationHistory = convertToModelMessages(messages).filter(
+         (m) => m.role === "user" || m.role === "assistant"
+       );
+ 
+       // Rerank results using LLM
+       const query = [keywords?.join(" "), searchQuery]
+         .filter(Boolean)
+         .join(" ");
+       const rerankedResults = await rerankEmails(
+-        rrfResults.slice(0, NUMBER_PASSED_TO_RERANKER),
++        rrfResults.slice(0, NUMBER_PASSED_TO_RERANKER).map((r) => ({
++          email: r.item,
++          score: r.score,
++        })),
+         query,
+         conversationHistory
+       );
+ 
+       // Return metadata with snippets only
+       const topEmails = rerankedResults.map((r) => {
+         // Get full email to extract threadId
+         const fullEmail = emails.find((e) => e.id === r.email.id);
+-        const snippet = r.email.chunk.slice(0, 150).trim() + (r.email.chunk.length > 150 ? "..." : "");
++        const snippet =
++          r.email.chunk.slice(0, 150).trim() +
++          (r.email.chunk.length > 150 ? "..." : "");
+ 
+         return {
+           id: r.email.id,
+           threadId: fullEmail?.threadId ?? "",
+           subject: r.email.subject,
+           from: r.email.from,
+           to: r.email.to,
+           timestamp: r.email.timestamp,
+           score: r.score,
+           snippet,
+         };
+       });
+ 
+       console.log("Top emails:", topEmails.length);
+ 
+       return {
+         emails: topEmails,
+       };
+     },
+   });
+diff --git a/src/app/search.ts b/src/app/search.ts
+index cf9b037..d5e426d 100644
+--- a/src/app/search.ts
++++ b/src/app/search.ts
+@@ -64,21 +64,20 @@ export const chunkEmails = async (emails: Email[]) => {
+   return emailsWithChunks;
+ };
+ 
+-export async function searchWithBM25(
++export async function searchWithBM25<T>(
+   keywords: string[],
+-  emailChunks: EmailChunk[]
++  items: T[],
++  toText: (item: T) => string
+ ) {
+-  // Combine subject + chunks for richer text corpus
+-  const corpus = emailChunks.flatMap((emailChunk) =>
+-    emailChunkToText(emailChunk)
+-  );
++  // Combine items for richer text corpus
++  const corpus = items.flatMap((item) => toText(item));
+ 
+   // BM25 returns score array matching corpus order
+   const scores: number[] = (BM25 as any)(corpus, keywords);
+ 
+-  // Map scores to emails, sort descending
++  // Map scores to items, sort descending
+   return scores
+-    .map((score, idx) => ({ score, email: emailChunks[idx] }))
++    .map((score, idx) => ({ score, item: items[idx] }))
+     .sort((a, b) => b.score - a.score);
+ }
+ 
+@@ -92,126 +91,133 @@ export async function loadEmails(): Promise<Email[]> {
+ export const emailChunkToText = (email: EmailChunk) =>
+   `${email.subject} ${email.chunk}`;
+ 
+-export async function loadOrGenerateEmbeddings(
+-  emailChunks: EmailChunk[]
+-): Promise<{ id: string; embedding: number[] }[]> {
++export const emailChunkToId = (email: EmailChunk) =>
++  `${email.id}-${email.index}`;
++
++export async function loadOrGenerateEmbeddings<T>(
++  items: T[],
++  toText: (item: T) => string
++): Promise<{ item: T; embedding: number[] }[]> {
+   // Ensure cache directory exists
+   await ensureEmbeddingsCacheDirectory();
+ 
+-  const results: { id: string; embedding: number[] }[] = [];
+-  const uncachedEmailChunks: EmailChunk[] = [];
++  const results: { item: T; embedding: number[] }[] = [];
++  const uncachedItems: T[] = [];
+ 
+   // Check cache for each email
+-  for (const emailChunk of emailChunks) {
+-    const cachedEmbedding = await getCachedEmbedding(
+-      emailChunkToText(emailChunk)
+-    );
++  for (const item of items) {
++    const cachedEmbedding = await getCachedEmbedding(toText(item));
+     if (cachedEmbedding) {
+-      results.push({ id: emailChunk.id, embedding: cachedEmbedding });
++      results.push({ item, embedding: cachedEmbedding });
+     } else {
+       // Cache miss - need to generate
+-      uncachedEmailChunks.push(emailChunk);
++      uncachedItems.push(item);
+     }
+   }
+ 
+   // Generate embeddings for uncached emails in batches of 99
+-  if (uncachedEmailChunks.length > 0) {
+-    console.log(
+-      `Generating embeddings for ${uncachedEmailChunks.length} emails`
+-    );
++  if (uncachedItems.length > 0) {
++    console.log(`Generating embeddings for ${uncachedItems.length} items`);
+ 
+     const BATCH_SIZE = 99;
+-    for (let i = 0; i < uncachedEmailChunks.length; i += BATCH_SIZE) {
+-      const batch = uncachedEmailChunks.slice(i, i + BATCH_SIZE);
++    for (let i = 0; i < uncachedItems.length; i += BATCH_SIZE) {
++      const batch = uncachedItems.slice(i, i + BATCH_SIZE);
+       console.log(
+         `Processing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(
+-          uncachedEmailChunks.length / BATCH_SIZE
++          uncachedItems.length / BATCH_SIZE
+         )}`
+       );
+ 
+       const { embeddings } = await embedMany({
+         model: google.textEmbeddingModel("text-embedding-004"),
+-        values: batch.map((e) => emailChunkToText(e)),
++        values: batch.map((item) => toText(item)),
+       });
+ 
+       // Write batch to cache
+       for (let j = 0; j < batch.length; j++) {
+-        const email = batch[j];
++        const item = batch[j];
+         const embedding = embeddings[j];
+-
+-        await writeEmbeddingToCache(emailChunkToText(email), embedding);
+-
+-        results.push({ id: email.id, embedding });
++        await writeEmbeddingToCache(toText(item), embedding);
++        results.push({ item, embedding });
+       }
+     }
+   }
+ 
+   return results;
+ }
+ 
+-export async function searchWithEmbeddings(
++export async function searchWithEmbeddings<T>(
+   query: string,
+-  emailChunks: EmailChunk[]
++  items: T[],
++  toText: (item: T) => string
+ ) {
+   // Load cached embeddings
+-  const emailEmbeddings = await loadOrGenerateEmbeddings(emailChunks);
++  const embeddings = await loadOrGenerateEmbeddings(items, toText);
+ 
+   // Generate query embedding
+   const { embedding: queryEmbedding } = await embed({
+     model: google.textEmbeddingModel("text-embedding-004"),
+     value: query,
+   });
+ 
+   // Calculate similarity scores
+-  const results = emailEmbeddings.map(({ id, embedding }) => {
+-    const email = emailChunks.find((e) => e.id === id)!;
++  const results = embeddings.map(({ item, embedding }) => {
+     const score = cosineSimilarity(queryEmbedding, embedding);
+-    return { score, email };
++    return { score, item };
+   });
+ 
+   // Sort by similarity descending
+   return results.sort((a, b) => b.score - a.score);
+ }
+ 
+ const RRF_K = 60;
+ 
+-export function reciprocalRankFusion(
+-  rankings: { email: EmailChunk; score: number }[][]
+-): { email: EmailChunk; score: number }[] {
++export function reciprocalRankFusion<T>(
++  rankings: { item: T; score: number }[][],
++  toId: (item: T) => string
++): { item: T; score: number }[] {
+   const rrfScores = new Map<string, number>();
+-  const emailMap = new Map<string, EmailChunk>();
++  const itemMap = new Map<string, T>();
+ 
+   // Process each ranking list (BM25 and embeddings)
+   rankings.forEach((ranking) => {
+     ranking.forEach((item, rank) => {
+-      const emailChunkId = `${item.email.id}-${item.email.index}`;
++      const itemId = toId(item.item);
+ 
+-      const currentScore = rrfScores.get(emailChunkId) || 0;
++      const currentScore = rrfScores.get(itemId) || 0;
+ 
+       // Position-based scoring: 1/(k+rank)
+       const contribution = 1 / (RRF_K + rank);
+-      rrfScores.set(emailChunkId, currentScore + contribution);
++      rrfScores.set(itemId, currentScore + contribution);
+ 
+-      emailMap.set(emailChunkId, item.email);
++      itemMap.set(itemId, item.item);
+     });
+   });
+ 
+   // Sort by combined RRF score descending
+   return Array.from(rrfScores.entries())
+     .sort(([, scoreA], [, scoreB]) => scoreB - scoreA)
+-    .map(([emailChunkId, score]) => ({
++    .map(([itemId, score]) => ({
+       score,
+-      email: emailMap.get(emailChunkId)!,
++      item: itemMap.get(itemId)!,
+     }));
+ }
+ 
+-export const searchWithRRF = async (query: string, emails: Email[]) => {
++export const searchEmailsWithRRF = async (query: string, emails: Email[]) => {
+   const emailChunks = await chunkEmails(emails);
+   const bm25Ranking = await searchWithBM25(
+     query.toLowerCase().split(" "),
+-    emailChunks
++    emailChunks,
++    emailChunkToText
++  );
++  const embeddingsRanking = await searchWithEmbeddings(
++    query,
++    emailChunks,
++    emailChunkToText
++  );
++  const rrfRanking = reciprocalRankFusion(
++    [bm25Ranking, embeddingsRanking],
++    emailChunkToId
+   );
+-  const embeddingsRanking = await searchWithEmbeddings(query, emailChunks);
+-  const rrfRanking = reciprocalRankFusion([bm25Ranking, embeddingsRanking]);
+   return rrfRanking;
+ };
+diff --git a/src/app/search/page.tsx b/src/app/search/page.tsx
+index 7eb83eb..e56e2aa 100644
+--- a/src/app/search/page.tsx
++++ b/src/app/search/page.tsx
+@@ -2,7 +2,7 @@ import { SideBar } from "@/components/side-bar";
+ import { TopBar } from "@/components/top-bar";
+ import { loadChats, loadMemories } from "@/lib/persistence-layer";
+ import { CHAT_LIMIT } from "../page";
+-import { loadEmails, searchWithEmbeddings, searchWithRRF } from "../search";
++import { loadEmails, searchEmailsWithRRF } from "../search";
+ import { EmailList } from "./email-list";
+ import { PerPageSelector } from "./per-page-selector";
+ import { SearchInput } from "./search-input";
+@@ -11,93 +11,93 @@ import { SearchPagination } from "./search-pagination";
+ export default async function SearchPage(props: {
+   searchParams: Promise<{ q?: string; page?: string; perPage?: string }>;
+ }) {
+   const searchParams = await props.searchParams;
+   const query = searchParams.q || "";
+   const page = Number(searchParams.page) || 1;
+   const perPage = Number(searchParams.perPage) || 10;
+ 
+   const allEmails = await loadEmails();
+ 
+-  const emailsWithScores = await searchWithRRF(query, allEmails);
++  const emailsWithScores = await searchEmailsWithRRF(query, allEmails);
+ 
+   // Transform emails to match the expected format
+   const transformedEmails = emailsWithScores
+-    .map(({ email, score }) => ({
++    .map(({ item: email, score }) => ({
+       id: email.id,
+       from: email.from,
+       subject: email.subject,
+       preview: email.chunk.substring(0, 100) + "...",
+       content: email.chunk,
+       chunkIndex: email.index,
+       totalChunks: email.totalChunks,
+       date: email.timestamp,
+       score: score,
+     }))
+     .sort((a, b) => b.score - a.score);
+ 
+   // Filter emails based on search query
+   const filteredEmails = query
+     ? transformedEmails.filter((email) => email.score > 0)
+     : transformedEmails;
+ 
+   const totalPages = Math.ceil(filteredEmails.length / perPage);
+   const startIndex = (page - 1) * perPage;
+   const paginatedEmails = filteredEmails.slice(
+     startIndex,
+     startIndex + perPage
+   );
+   const allChats = await loadChats();
+   const chats = allChats.slice(0, CHAT_LIMIT);
+   const memories = await loadMemories();
+ 
+   return (
+     <>
+       <SideBar chats={chats} memories={memories} chatIdFromSearchParams={""} />
+       <div className="h-screen flex flex-col w-full">
+         <TopBar showSidebar={true} title="Data" />
+         <div className="flex-1">
+           <div className="max-w-4xl mx-auto xl:px-2 px-6 py-6">
+             <div className="mb-6">
+               <p className="text-sm text-muted-foreground">
+                 Search through your email archive
+               </p>
+             </div>
+ 
+             <div className="flex md:items-center md:justify-between gap-4 flex-col md:flex-row">
+               <SearchInput initialQuery={query} currentPerPage={perPage} />
+               <PerPageSelector currentPerPage={perPage} query={query} />
+             </div>
+ 
+             <div className="mt-6">
+               <div className="flex items-center justify-between mb-3">
+                 <p className="text-sm text-muted-foreground">
+                   {query ? (
+                     <>
+                       Found {filteredEmails.length} result
+                       {filteredEmails.length !== 1 ? "s" : ""} for &ldquo;
+                       {query}
+                       &rdquo;
+                     </>
+                   ) : (
+                     <>Found {filteredEmails.length} emails</>
+                   )}
+                 </p>
+               </div>
+               <EmailList emails={paginatedEmails} />
+               {totalPages > 1 && (
+                 <div className="mt-6">
+                   <SearchPagination
+                     currentPage={page}
+                     totalPages={totalPages}
+                     query={query}
+                     perPage={perPage}
+                   />
+                 </div>
+               )}
+             </div>
+           </div>
+         </div>
+       </div>
+     </>
+   );
+ }

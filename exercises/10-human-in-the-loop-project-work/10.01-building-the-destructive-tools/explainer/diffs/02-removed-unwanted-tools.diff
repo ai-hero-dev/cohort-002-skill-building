@@ -1,0 +1,42 @@
+commit b91045a48d13604f3e28b042c3a6b86a82e0cb68
+Author: Matt Pocock <team@aihero.dev>
+Date:   Thu Nov 13 11:42:57 2025 +0000
+
+    10.01.02 Removed unwanted tools
+
+diff --git a/src/app/api/chat/mcp.ts b/src/app/api/chat/mcp.ts
+index 4b8a471..2ce2783 100644
+--- a/src/app/api/chat/mcp.ts
++++ b/src/app/api/chat/mcp.ts
+@@ -1,14 +1,30 @@
+ import { experimental_createMCPClient } from "@ai-sdk/mcp";
++import { ToolSet } from "ai";
++
++const deleteUnwantedTools = (tools: ToolSet) => {
++  if ("add_tools" in tools) {
++    delete tools.add_tools;
++  }
++  if ("edit_tools" in tools) {
++    delete tools.edit_tools;
++  }
++
++  return tools;
++};
+ 
+ export const getMCPTools = async () => {
+   const httpClient = await experimental_createMCPClient({
+     transport: {
+       type: "http",
+       url: process.env.MCP_URL!,
+     },
+   });
+ 
+   const tools = await httpClient.tools();
+ 
+-  return tools;
++  for (const tool of Object.keys(tools)) {
++    console.log(tool, (tools[tool].inputSchema as any).jsonSchema);
++  }
++
++  return deleteUnwantedTools(tools);
+ };

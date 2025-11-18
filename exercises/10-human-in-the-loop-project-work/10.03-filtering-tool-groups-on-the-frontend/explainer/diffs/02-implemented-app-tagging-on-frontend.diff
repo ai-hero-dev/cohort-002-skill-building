@@ -1,127 +1,49 @@
-commit c91d06c25547320b7041f657924b9b68fdbb650e
+commit d1845c5e89840ceee022d2ae78a8b038ee065c20
 Author: Matt Pocock <team@aihero.dev>
-Date:   Fri Oct 31 16:03:47 2025 +0000
+Date:   Fri Nov 14 14:13:18 2025 +0000
 
-    04.04.02 Added includeThread
+    10.03.02 Implemented app tagging on frontend
 
-diff --git a/src/app/api/chat/get-emails-tool.ts b/src/app/api/chat/get-emails-tool.ts
-index 266dd47..6ab914b 100644
---- a/src/app/api/chat/get-emails-tool.ts
-+++ b/src/app/api/chat/get-emails-tool.ts
-@@ -4,34 +4,51 @@ import { z } from "zod";
- 
- export const getEmailsTool = tool({
-   description:
--    "Fetch full content of specific emails by their IDs. Use this after searching/filtering to retrieve complete email bodies.",
-+    "Fetch full content of specific emails by their IDs. Use this after searching/filtering to retrieve complete email bodies. Optionally include entire conversation threads.",
-   inputSchema: z.object({
-     ids: z
-       .array(z.string())
-       .describe("Array of email IDs to retrieve full content for"),
-+    includeThread: z
-+      .boolean()
-+      .describe(
-+        "If true, fetch entire conversation threads for the specified emails"
-+      )
-+      .default(false),
-   }),
--  execute: async ({ ids }) => {
--    console.log("Get emails params:", { ids });
-+  execute: async ({ ids, includeThread }) => {
-+    console.log("Get emails params:", { ids, includeThread });
- 
-     const emails = await loadEmails();
- 
--    const results = emails.filter((email) => ids.includes(email.id));
-+    let results = emails.filter((email) => ids.includes(email.id));
-+
-+    if (includeThread && results.length > 0) {
-+      // Get all unique threadIds from the requested emails
-+      const threadIds = [...new Set(results.map((email) => email.threadId))];
-+
-+      // Get all emails that belong to these threads
-+      results = emails.filter((email) => threadIds.includes(email.threadId));
-+
-+      // Sort by timestamp to maintain conversation order
-+      results.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
-+    }
- 
-     console.log(`Returning ${results.length} emails`);
- 
-     return {
-       emails: results.map((email) => ({
-         id: email.id,
-         threadId: email.threadId,
-         subject: email.subject,
-         from: email.from,
-         to: email.to,
-         timestamp: email.timestamp,
-         body: email.body,
-         cc: email.cc,
-         inReplyTo: email.inReplyTo,
-         references: email.references,
-       })),
-     };
-   },
- });
-diff --git a/src/app/api/chat/route.ts b/src/app/api/chat/route.ts
-index 5c32021..e7822a1 100644
---- a/src/app/api/chat/route.ts
-+++ b/src/app/api/chat/route.ts
-@@ -105,43 +105,45 @@ export async function POST(req: Request) {
-       const result = streamText({
-         model: google("gemini-2.5-flash"),
-         messages: convertToModelMessages(messages),
-         system: `
- <task-context>
- You are an email assistant that helps users find and understand information from their emails.
- </task-context>
- 
- <rules>
- - You have THREE tools available: 'search', 'filterEmails', and 'getEmails'
- - Follow this multi-step workflow for token efficiency:
- 
-   STEP 1 - Browse metadata:
-   USE 'filterEmails' when the user wants to:
-   - Find emails from/to specific people (e.g., "emails from John", "emails to sarah@example.com")
-   - Filter by date ranges (e.g., "emails before January 2024", "emails after last week")
-   - Find emails containing exact text (e.g., "emails containing 'invoice'")
-   - Any combination of precise filtering criteria
- 
-   USE 'search' when the user wants to:
-   - Find information semantically (e.g., "emails about the project deadline")
-   - Search by concepts or topics (e.g., "discussions about budget")
-   - Find answers to questions (e.g., "what did John say about the meeting?")
-   - Any query requiring understanding of meaning/context
-   - Find people by name or description (e.g., "Mike's biggest client")
- 
-   NOTE: 'search' and 'filterEmails' return metadata with snippets only (id, threadId, subject, from, to, timestamp, snippet)
- 
-   STEP 2 - Review and select:
-   - Review the subjects, metadata, and snippets from search/filter results
-   - Identify which specific emails need full content to answer the user's question
-   - If snippets contain enough info, answer directly without fetching full content
- 
-   STEP 3 - Fetch full content:
-   USE 'getEmails' to retrieve full email bodies:
-   - Pass array of email IDs you need to read completely
-+  - Set includeThread=true if you need conversation context (replies, full thread)
-+  - Set includeThread=false for individual emails
- 
- - NEVER answer from your training data - always use tools first
- - If the first query doesn't find enough information, try different approaches or tools
- - Only after using tools should you formulate your answer based on the results
- </rules>
- 
- <the-ask>
 diff --git a/src/app/chat.tsx b/src/app/chat.tsx
-index 9e2dc08..5beb90d 100644
+index 774560a..72737d0 100644
 --- a/src/app/chat.tsx
 +++ b/src/app/chat.tsx
-@@ -49,384 +49,390 @@ import { Button } from "@/components/ui/button";
+@@ -12,17 +12,18 @@ import {
+   PromptInput,
+   PromptInputActionAddAttachments,
+   PromptInputActionMenu,
+   PromptInputActionMenuContent,
+   PromptInputActionMenuTrigger,
+   PromptInputAttachment,
+   PromptInputAttachments,
+   PromptInputBody,
+   PromptInputMessage,
+   PromptInputSubmit,
+   PromptInputTextarea,
+   PromptInputToolbar,
+   PromptInputTools,
+ } from "@/components/ai-elements/prompt-input";
++import { PromptInputAppButtons } from "@/components/ai-elements/prompt-input-app-buttons";
+ import {
+   Reasoning,
+   ReasoningContent,
+@@ -49,538 +50,568 @@ import { useRouter, useSearchParams } from "next/navigation";
+ import { Button } from "@/components/ui/button";
+ import { DefaultChatTransport } from "ai";
+ import { Fragment, startTransition, useMemo, useState } from "react";
++import { parseAppIdsFromMessage } from "./api/chat/apps-config";
+ import type { MyMessage } from "./api/chat/route";
+ import { useFocusWhenNoChatIdPresent } from "./use-focus-chat-when-new-chat-button-pressed";
+ 
  export const Chat = (props: { chat: DB.Chat | null }) => {
    const [backupChatId, setBackupChatId] = useState(crypto.randomUUID());
    const [input, setInput] = useState("");
++  const [taggedAppIds, setTaggedAppIds] = useState<string[]>(() => {
++    const lastUserMessage = props.chat?.messages
++      ?.filter((m) => m.role === "user")
++      .at(-1);
++    return parseAppIdsFromMessage(lastUserMessage);
++  });
    const searchParams = useSearchParams();
    const router = useRouter();
    const chatIdFromSearchParams = searchParams.get("chatId");
@@ -138,10 +60,119 @@ index 9e2dc08..5beb90d 100644
          router.refresh();
        }
      },
+     onFinish: () => {
+       router.refresh();
+     },
      generateId: () => crypto.randomUUID(),
+     transport: new DefaultChatTransport({
+       prepareSendMessagesRequest: (request) => {
+         return {
+           body: {
+             id: request.body?.id,
+             message: request.messages[request.messages.length - 1],
+           },
+         };
+       },
+     }),
    });
  
    const ref = useFocusWhenNoChatIdPresent(chatIdFromSearchParams);
+ 
+   const wrappedSendMessage: typeof sendMessage = async (message, options) => {
+     return sendMessage(message, {
+       ...options,
+       body: {
+         id: chatIdInUse,
+         ...options?.body,
+       },
+     });
+   };
+ 
+   const outstandingDecisions = useMemo(() => {
+     const allMessageParts = messages.flatMap((message) => message.parts);
+ 
+     const toolIdsOfAllRequests = new Set(
+       allMessageParts
+         .filter((part) => part.type === "data-approval-request")
+         .map((part) => part.data.tool.id)
+     );
+ 
+     const toolIdsOfAllDecisions = new Set(
+       allMessageParts
+         .filter((part) => part.type === "data-approval-decision")
+         .map((part) => part.data.toolId)
+     );
+ 
+     // Get the tool IDs that have requests but no decisions
+     const outstandingDecisions = toolIdsOfAllRequests.difference(
+       toolIdsOfAllDecisions
+     );
+ 
+     return outstandingDecisions;
+   }, [messages]);
+ 
+   const [toolIdGivingFeedbackOn, setToolIdGivingFeedbackOn] = useState<
+     string | null
+   >(null);
+ 
+   const isGivingFeedback = !!toolIdGivingFeedbackOn;
+   const shouldDisableInput = outstandingDecisions.size > 0 && !isGivingFeedback;
+ 
++  const handleToggleApp = (appId: string) => {
++    setTaggedAppIds((prev) =>
++      prev.includes(appId)
++        ? prev.filter((id) => id !== appId)
++        : [...prev, appId]
++    );
++  };
++
+   const handlePressApprove = (toolId: string) => {
+     wrappedSendMessage({
+       parts: [
+         {
+           type: "data-approval-decision",
+           data: {
+             toolId,
+             decision: {
+               type: "approve",
+             },
+           },
+         },
+       ],
+     });
+   };
+ 
+   const handlePressReject = (toolId: string) => {
+     setToolIdGivingFeedbackOn(toolId);
+     setInput("");
+     // Waits for the 'disabled' state to be removed from the input
+     // before focusing the input
+     setTimeout(() => {
+       ref.current?.focus();
+     }, 1);
+   };
+ 
+   const handleSubmitRejectReason = () => {
+     if (!toolIdGivingFeedbackOn) return;
+ 
+     wrappedSendMessage({
+       parts: [
+         {
+           type: "data-approval-decision",
+           data: {
+             toolId: toolIdGivingFeedbackOn,
+             decision: {
+               type: "reject",
+               reason: input,
+             },
+           },
+         },
+       ],
+     });
+ 
+     setToolIdGivingFeedbackOn(null);
+     setInput("");
+   };
  
    const handleSubmit = (message: PromptInputMessage) => {
      const hasText = Boolean(message.text);
@@ -151,18 +182,29 @@ index 9e2dc08..5beb90d 100644
        return;
      }
  
+     if (isGivingFeedback) {
+       handleSubmitRejectReason();
+       return;
+     }
+ 
      startTransition(() => {
-       sendMessage(
-         {
-           text: message.text || "Sent with attachments",
-           files: message.files,
-         },
-         {
-           body: {
-             id: chatIdInUse,
-           },
-         }
-       );
++      const appTagParts = taggedAppIds.map((appId) => ({
++        type: "data-app-tag" as const,
++        data: { appId },
++      }));
++
+       wrappedSendMessage({
+-        text: message.text || "Sent with attachments",
+-        files: message.files,
++        parts: [
++          {
++            type: "text",
++            text: message.text || "Sent with attachments",
++          },
++          ...appTagParts,
++          ...(message.files ?? []),
++        ],
+       });
  
        setInput("");
  
@@ -434,12 +476,12 @@ index 9e2dc08..5beb90d 100644
                                        {part.input.ids.length !== 1 ? "s" : ""}
                                      </div>
                                    )}
-+                                  <div>
-+                                    <span className="font-medium">
-+                                      Include Thread:
-+                                    </span>{" "}
-+                                    {part.input.includeThread ? "Yes" : "No"}
-+                                  </div>
+                                   <div>
+                                     <span className="font-medium">
+                                       Include Thread:
+                                     </span>{" "}
+                                     {part.input.includeThread ? "Yes" : "No"}
+                                   </div>
                                  </div>
                                </div>
                              )}
@@ -462,6 +504,43 @@ index 9e2dc08..5beb90d 100644
                                </div>
                              )}
                            </div>
+                         </ToolContent>
+                       </Tool>
+                     );
+                   case "data-approval-request":
+                     return (
+                       <Tool
+                         key={`${message.id}-${i}`}
+                         className="w-full"
+                         defaultOpen={true}
+                       >
+                         <ToolHeader
+                           title={`Approval Request: ${part.data.tool.name}`}
+                           type={"tool-approval" as const}
+                           state="input-available"
+                         />
+ 
+                         <ToolContent>
+                           <ToolInput input={part.data.tool.input} />
+                           {outstandingDecisions.has(part.data.tool.id) && (
+                             <div className="flex gap-2 p-4 pt-0">
+                               <Button
+                                 onClick={() =>
+                                   handlePressApprove(part.data.tool.id)
+                                 }
+                               >
+                                 Approve
+                               </Button>
+                               <Button
+                                 variant="secondary"
+                                 onClick={() =>
+                                   handlePressReject(part.data.tool.id)
+                                 }
+                               >
+                                 Reject
+                               </Button>
+                             </div>
+                           )}
                          </ToolContent>
                        </Tool>
                      );
@@ -489,6 +568,12 @@ index 9e2dc08..5beb90d 100644
              <PromptInputTextarea
                onChange={(e) => setInput(e.target.value)}
                value={input}
+               placeholder={
+                 isGivingFeedback
+                   ? "Why are you rejecting this tool?"
+                   : "What would you like to know?"
+               }
+               disabled={shouldDisableInput}
                ref={ref}
                autoFocus
              />
@@ -501,6 +586,10 @@ index 9e2dc08..5beb90d 100644
                    <PromptInputActionAddAttachments />
                  </PromptInputActionMenuContent>
                </PromptInputActionMenu>
++              <PromptInputAppButtons
++                taggedAppIds={taggedAppIds}
++                onToggle={handleToggleApp}
++              />
              </PromptInputTools>
              <PromptInputSubmit disabled={!input && !status} status={status} />
            </PromptInputToolbar>
@@ -509,3 +598,45 @@ index 9e2dc08..5beb90d 100644
      </div>
    );
  };
+diff --git a/src/components/ai-elements/prompt-input-app-buttons.tsx b/src/components/ai-elements/prompt-input-app-buttons.tsx
+new file mode 100644
+index 0000000..34d2649
+--- /dev/null
++++ b/src/components/ai-elements/prompt-input-app-buttons.tsx
+@@ -0,0 +1,36 @@
++"use client";
++
++import { availableApps } from "@/app/api/chat/apps-config";
++import { Button } from "@/components/ui/button";
++import { cn } from "@/lib/utils";
++
++export const PromptInputAppButtons = (props: {
++  taggedAppIds: string[];
++  onToggle: (appId: string) => void;
++}) => {
++  return (
++    <div className="flex gap-2">
++      {availableApps.map((app) => {
++        const isActive = props.taggedAppIds.includes(app.id);
++        const Icon = app.icon;
++
++        return (
++          <Button
++            key={app.id}
++            type="button"
++            variant={isActive ? "default" : "ghost"}
++            size="sm"
++            onClick={() => props.onToggle(app.id)}
++            className={cn(
++              "flex items-center gap-1.5 min-w-fit",
++              isActive && "bg-primary text-primary-foreground"
++            )}
++          >
++            <Icon className="size-3 shrink-0" />
++            <span className="text-xs whitespace-nowrap">{app.name}</span>
++          </Button>
++        );
++      })}
++    </div>
++  );
++};

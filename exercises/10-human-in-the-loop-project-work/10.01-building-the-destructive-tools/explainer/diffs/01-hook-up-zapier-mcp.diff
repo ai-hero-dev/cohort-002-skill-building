@@ -1,0 +1,417 @@
+commit 8e7c7f616b02f1e806d47de73e8787d986280386
+Author: Matt Pocock <team@aihero.dev>
+Date:   Thu Nov 13 11:32:45 2025 +0000
+
+    10.01.01 Hook up Zapier MCP
+
+diff --git a/evals/e2e-retrieval.eval.ts b/evals/e2e-retrieval.eval.ts
+index 76bcd11..84d12ee 100644
+--- a/evals/e2e-retrieval.eval.ts
++++ b/evals/e2e-retrieval.eval.ts
+@@ -10,144 +10,145 @@ import { answerCorrectness } from "evalite/scorers";
+ evalite.each([
+   {
+     name: "Gemini 2.5 Flash",
+     input: google("gemini-2.5-flash"),
+   },
+ ])("Search for information", {
+   data: [
+     {
+       input: createUIMessageFixture<MyMessage>(
+         "Which house did I buy? What is its address?"
+       ),
+       expected:
+         "You bought a house at 42 Victoria Grove, Chorlton, Manchester M21 9EH.",
+     },
+     {
+       input: createUIMessageFixture<MyMessage>(
+         "What was the name of the person I was mentoring, and what was I mentoring them about?"
+       ),
+       expected: "You were mentoring Elena Kovac on the subject of climbing.",
+     },
+     {
+       input: createUIMessageFixture<MyMessage>("Am I married? If so, who to?"),
+       expected: "You are not married. Your partner is Alex Chen.",
+     },
+     // Multi-hop queries
+     {
+       input: createUIMessageFixture<MyMessage>(
+         "What price reduction did I negotiate on the Chorlton house after the survey, and who recommended asking for it?"
+       ),
+       expected:
+         "You negotiated a £5,500 price reduction. Jennifer Lawson recommended requesting £6,000 based on the survey report showing damp issues requiring £7,000-£8,000 in treatment.",
+     },
+     {
+       input: createUIMessageFixture<MyMessage>(
+         "Who is Tom Richardson and what day rate did I quote him?"
+       ),
+       expected:
+         "Tom Richardson is a Senior Product Manager at Hartley & Co. You quoted him a day rate of £1,250 for a 3-week design systems consulting engagement.",
+     },
+     {
+       input: createUIMessageFixture<MyMessage>(
+         "What photography equipment advice did Martin Hughes offer for my New Zealand trip?"
+       ),
+       expected:
+         "Martin Hughes recommended upgrading your lens for the New Zealand trip. He mentioned he did a NZ trip 3 years ago and offered to bring location recommendations to a coffee meetup.",
+     },
+     {
+       input: createUIMessageFixture<MyMessage>(
+         "What was the final purchase price of my house at 42 Victoria Grove?"
+       ),
+       expected:
+         "The final purchase price was £437,500 after a £5,500 reduction from the original asking price.",
+     },
+     {
+       input: createUIMessageFixture<MyMessage>(
+         "What climbing locations did Chris Dalton suggest for my progression to 5.11, and what specific areas?"
+       ),
+       expected:
+         "Chris Dalton suggested gritstone routes near Stanage Edge, specifically the Plantation and Upper Tier areas with technical 5.11a routes.",
+     },
+     {
+       input: createUIMessageFixture<MyMessage>(
+         "Who is Katie Zhang and why did I want to connect with her during New Zealand trip planning?"
+       ),
+       expected:
+         "Katie Zhang is your old colleague who moved to Auckland, New Zealand. You wanted to connect with her to get local insider recommendations for climbing and photography spots.",
+     },
+     {
+       input: createUIMessageFixture<MyMessage>(
+         "Tell me about Tom from my consulting emails"
+       ),
+       expected:
+         "Tom Richardson from Hartley & Co contacted you about design systems consulting work. You quoted him £1,250/day for a 3-week engagement totaling £18,750.",
+     },
+     {
+       input: createUIMessageFixture<MyMessage>("Tell me about Emma"),
+       expected:
+         "There are multiple people named Emma in your emails: Emma Chen (Lead Product Designer at Hartley & Co), and others in your wedding planning and photography contexts. Could you be more specific about which Emma you're asking about?",
+     },
+     // Filtering queries
+     {
+       input: createUIMessageFixture<MyMessage>(
+         "How many emails did I receive from David Xu between June 1-15, 2024?"
+       ),
+       expected: "You received 5 emails from David Xu between June 1-15, 2024.",
+     },
+     {
+       input: createUIMessageFixture<MyMessage>(
+         "How many emails did I exchange with Alex about the New Zealand trip in phase 1?"
+       ),
+       expected:
+         "You exchanged 1 email from Alex about the New Zealand trip in phase 1.",
+     },
+   ],
+   task: async (input, model) => {
+     const agent = createAgent({
+       memories: [],
+       messages: input,
+       model: model,
+       stopWhen: stepCountIs(10),
+       relatedChats: [],
++      mcpTools: {},
+     });
+ 
+     const result = await agent.generate({
+       messages: convertToModelMessages(input),
+     });
+ 
+     return {
+       text: result.text,
+       toolCalls: result.steps.flatMap((step) => step.toolCalls),
+     };
+   },
+   columns: ({ input, output, expected }) => [
+     {
+       label: "Input",
+       value: input,
+     },
+     {
+       label: "Summary",
+       value: output.text,
+     },
+     {
+       label: "Tool Calls",
+       value: output.toolCalls,
+     },
+     {
+       label: "Expected",
+       value: expected,
+     },
+   ],
+   scorers: [
+     {
+       scorer: ({ output, expected, input }) => {
+         return answerCorrectness({
+           question: input.map(messageToText).join("\n"),
+           answer: output.text,
+           reference: expected,
+           embeddingModel: google.textEmbeddingModel("text-embedding-004"),
+           model: google("gemini-2.5-flash-lite"),
+         });
+       },
+     },
+   ],
+ });
+diff --git a/package.json b/package.json
+index 6d3539b..aa9ba0b 100644
+--- a/package.json
++++ b/package.json
+@@ -1,62 +1,63 @@
+ {
+   "name": "ai-personal-assistant",
+   "version": "0.1.0",
+   "private": true,
+   "scripts": {
+     "dev": "next dev --turbopack",
+     "build": "next build --turbopack",
+     "dev:eval": "evalite watch",
+     "start": "next start",
+     "cherry-pick": "ai-hero-cli cherry-pick --branch=live-run-through",
+     "reset": "ai-hero-cli reset --branch=live-run-through"
+   },
+   "dependencies": {
+     "@ai-sdk/anthropic": "^2.0.44",
+     "@ai-sdk/google": "^2.0.31",
+     "@ai-sdk/react": "^2.0.93",
++    "@ai-sdk/mcp": "^0.0.8",
+     "@langchain/textsplitters": "^1.0.0",
+     "@radix-ui/react-avatar": "^1.1.10",
+     "@radix-ui/react-collapsible": "^1.1.12",
+     "@radix-ui/react-dialog": "^1.1.15",
+     "@radix-ui/react-dropdown-menu": "^2.1.16",
+     "@radix-ui/react-hover-card": "^1.1.15",
+     "@radix-ui/react-progress": "^1.1.7",
+     "@radix-ui/react-scroll-area": "^1.2.10",
+     "@radix-ui/react-select": "^2.2.6",
+     "@radix-ui/react-separator": "^1.1.7",
+     "@radix-ui/react-slot": "^1.2.3",
+     "@radix-ui/react-tooltip": "^1.2.8",
+     "@radix-ui/react-use-controllable-state": "^1.2.2",
+     "ai": "^5.0.93",
+     "class-variance-authority": "^0.7.1",
+     "clsx": "^2.1.1",
+     "embla-carousel-react": "^8.6.0",
+     "lucide-react": "^0.544.0",
+     "nanoid": "^5.1.6",
+     "next": "15.5.4",
+     "next-themes": "^0.4.6",
+     "okapibm25": "^1.4.1",
+     "react": "19.1.0",
+     "react-dom": "19.1.0",
+     "react-syntax-highlighter": "^15.6.6",
+     "streamdown": "^1.3.0",
+     "tailwind-merge": "^3.3.1",
+     "tokenlens": "^1.3.1",
+     "use-stick-to-bottom": "^1.1.1",
+     "vite-tsconfig-paths": "^5.1.4",
+     "zod": "^4.1.11"
+   },
+   "devDependencies": {
+     "@tailwindcss/postcss": "^4.1.14",
+     "@types/node": "^20",
+     "@types/react": "^19",
+     "@types/react-dom": "^19",
+     "@types/react-syntax-highlighter": "^15.5.13",
+     "ai-hero-cli": "^0.2.6",
+     "evalite": "1.0.0-beta.4",
+     "tailwindcss": "^4",
+     "tw-animate-css": "^1.4.0",
+     "typescript": "^5",
+     "vitest": "^4.0.9"
+   }
+ }
+diff --git a/src/app/api/chat/agent.ts b/src/app/api/chat/agent.ts
+index f6e813a..46299fa 100644
+--- a/src/app/api/chat/agent.ts
++++ b/src/app/api/chat/agent.ts
+@@ -1,7 +1,8 @@
+ import {
+   Experimental_Agent as Agent,
+   LanguageModel,
+   StopCondition,
++  ToolSet,
+   UIMessage,
+ } from "ai";
+ import { MyMessage } from "./route";
+@@ -24,13 +25,14 @@ const USER_LAST_NAME = "Chen";
+ export const createAgent = (opts: {
+   messages: MyMessage[];
+   model: LanguageModel;
+   stopWhen: StopCondition<any>;
+   memories: DB.Memory[];
+   relatedChats: DB.Chat[];
++  mcpTools: ToolSet;
+ }) =>
+   new Agent({
+     model: opts.model,
+-    tools: getTools(opts.messages),
++    tools: { ...getTools(opts.messages), ...opts.mcpTools },
+     stopWhen: opts.stopWhen,
+     system: `
+ <task-context>
+diff --git a/src/app/api/chat/mcp.ts b/src/app/api/chat/mcp.ts
+new file mode 100644
+index 0000000..4b8a471
+--- /dev/null
++++ b/src/app/api/chat/mcp.ts
+@@ -0,0 +1,14 @@
++import { experimental_createMCPClient } from "@ai-sdk/mcp";
++
++export const getMCPTools = async () => {
++  const httpClient = await experimental_createMCPClient({
++    transport: {
++      type: "http",
++      url: process.env.MCP_URL!,
++    },
++  });
++
++  const tools = await httpClient.tools();
++
++  return tools;
++};
+diff --git a/src/app/api/chat/route.ts b/src/app/api/chat/route.ts
+index b4c74c1..f9009cc 100644
+--- a/src/app/api/chat/route.ts
++++ b/src/app/api/chat/route.ts
+@@ -21,6 +21,7 @@ import {
+ import { createAgent, getTools } from "./agent";
+ import { extractAndUpdateMemories } from "./extract-memories";
+ import { generateTitleForChat } from "./generate-title";
++import { getMCPTools } from "./mcp";
+ 
+ // Allow streaming responses up to 30 seconds
+ export const maxDuration = 30;
+@@ -40,128 +41,131 @@ export type MyMessage = UIMessage<
+ export async function POST(req: Request) {
+   const body: {
+     message: MyMessage;
+     id: string;
+   } = await req.json();
+ 
+   const chatId = body.id;
+ 
+   let chat = await getChat(chatId);
+ 
+   const recentMessages = [...(chat?.messages ?? []), body.message].slice(
+     -MESSAGE_HISTORY_LENGTH
+   );
+ 
+   const olderMessages = chat?.messages.slice(0, -MESSAGE_HISTORY_LENGTH);
+ 
+   const validatedMessagesResult = await safeValidateUIMessages<MyMessage>({
+     messages: recentMessages,
+   });
+ 
+   if (!validatedMessagesResult.success) {
+     return new Response(validatedMessagesResult.error.message, { status: 400 });
+   }
+ 
+   const messages = validatedMessagesResult.data;
+ 
+   const mostRecentMessage = messages[messages.length - 1];
+ 
+   if (!mostRecentMessage) {
+     return new Response("No messages provided", { status: 400 });
+   }
+ 
+   if (mostRecentMessage.role !== "user") {
+     return new Response("Last message must be from the user", {
+       status: 400,
+     });
+   }
+ 
+   const allMemories = await searchMemories({ messages });
+ 
+   const memories = allMemories.slice(0, MEMORIES_TO_USE);
+ 
+   const oldMessagesToUse = await searchMessages({
+     recentMessages: messages,
+     olderMessages: olderMessages ?? [],
+   }).then((results) =>
+     results
+       .slice(0, OLD_MESSAGES_TO_USE)
+       .sort((a, b) => b.score - a.score)
+       .map((result) => result.item)
+   );
+ 
+   console.log("oldMessagesToUse", oldMessagesToUse.length);
+ 
+   const messageHistoryForLLM = [...oldMessagesToUse, ...messages];
+ 
+   const stream = createUIMessageStream<MyMessage>({
+     execute: async ({ writer }) => {
+       let generateTitlePromise: Promise<void> | undefined = undefined;
+ 
+       if (!chat) {
+         const newChat = await createChat({
+           id: chatId,
+           title: "Generating title...",
+           initialMessages: messages,
+         });
+         chat = newChat;
+ 
+         writer.write({
+           type: "data-frontend-action",
+           data: "refresh-sidebar",
+           transient: true,
+         });
+ 
+         generateTitlePromise = generateTitleForChat(messages)
+           .then((title) => {
+             return updateChatTitle(chatId, title);
+           })
+           .then(() => {
+             writer.write({
+               type: "data-frontend-action",
+               data: "refresh-sidebar",
+               transient: true,
+             });
+           });
+       } else {
+         await appendToChatMessages(chatId, [mostRecentMessage]);
+       }
+ 
+       const relatedChats = await searchForRelatedChats(chatId, messages);
+ 
++      const mcpTools = await getMCPTools();
++
+       const agent = createAgent({
+         memories: memories.map((memory) => memory.item),
+         relatedChats: relatedChats.map((chat) => chat.item),
+         messages: messageHistoryForLLM,
+         model: google("gemini-2.5-flash"),
+         stopWhen: stepCountIs(10),
++        mcpTools,
+       });
+ 
+       const result = agent.stream({
+         messages: convertToModelMessages(messageHistoryForLLM),
+       });
+ 
+       writer.merge(
+         result.toUIMessageStream({
+           sendSources: true,
+           sendReasoning: true,
+         })
+       );
+ 
+       await generateTitlePromise;
+     },
+     generateId: () => crypto.randomUUID(),
+     onFinish: async ({ responseMessage }) => {
+       await appendToChatMessages(chatId, [responseMessage]);
+       await extractAndUpdateMemories({
+         messages: [...messages, responseMessage],
+         memories: memories.map((memory) => memory.item),
+       });
+       await reflectOnChat(chatId);
+     },
+   });
+ 
+   // send sources and reasoning back to the client
+   return createUIMessageStreamResponse({
+     stream,
+   });
+ }

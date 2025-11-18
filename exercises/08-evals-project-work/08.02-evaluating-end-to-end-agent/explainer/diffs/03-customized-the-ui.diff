@@ -1,0 +1,63 @@
+commit 12e71d117527b624d1952194779eff4b670743f6
+Author: Matt Pocock <team@aihero.dev>
+Date:   Tue Nov 11 16:18:58 2025 +0000
+
+    08.02.03 Customized the UI
+
+diff --git a/evals/e2e-retrieval.eval.ts b/evals/e2e-retrieval.eval.ts
+index 1f5302a..157c73e 100644
+--- a/evals/e2e-retrieval.eval.ts
++++ b/evals/e2e-retrieval.eval.ts
+@@ -8,34 +8,52 @@ import { createUIMessageFixture } from "./create-ui-message-fixture";
+ evalite.each([
+   {
+     name: "Gemini 2.5 Flash",
+     input: google("gemini-2.5-flash"),
+   },
+ ])("Search for information", {
+   data: [
+     {
+       input: createUIMessageFixture<MyMessage>(
+         "Which house did I buy? What is its address?"
+       ),
+       expected:
+         "You bought a house at 42 Victoria Grove, Chorlton, Manchester M21 9EH.",
+     },
+   ],
+   task: async (input, model) => {
+     const agent = createAgent({
+       memories: [],
+       messages: input,
+       model: model,
+       stopWhen: stepCountIs(10),
+       relatedChats: [],
+     });
+ 
+     const result = await agent.generate({
+       messages: convertToModelMessages(input),
+     });
+ 
+     return {
+       text: result.text,
+       toolCalls: result.steps.flatMap((step) => step.toolCalls),
+     };
+   },
++  columns: ({ input, output, expected }) => [
++    {
++      label: "Input",
++      value: input,
++    },
++    {
++      label: "Summary",
++      value: output.text,
++    },
++    {
++      label: "Tool Calls",
++      value: output.toolCalls,
++    },
++    {
++      label: "Expected",
++      value: expected,
++    },
++  ],
+ });

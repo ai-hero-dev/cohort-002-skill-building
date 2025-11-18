@@ -1,0 +1,37 @@
+commit 3a3747725cdbfd035c4a9b4589fe7c4629d45835
+Author: Matt Pocock <team@aihero.dev>
+Date:   Wed Nov 5 14:58:07 2025 +0000
+
+    06.03.03 Added searching for related chats
+
+diff --git a/src/app/search-for-related-chats.ts b/src/app/search-for-related-chats.ts
+new file mode 100644
+index 0000000..f3a30f1
+--- /dev/null
++++ b/src/app/search-for-related-chats.ts
+@@ -0,0 +1,25 @@
++import { DB, loadChats } from "@/lib/persistence-layer";
++import { searchWithEmbeddings } from "./search";
++import { chatToText, messageHistoryToQuery } from "./utils";
++import { MyMessage } from "./api/chat/route";
++
++const CHATS_TO_SEARCH = 3;
++
++export const searchForRelatedChats = async (
++  currentChatId: string,
++  messages: MyMessage[]
++) => {
++  const allOtherChats = await loadChats().then((chats) =>
++    chats.filter((c) => c.id !== currentChatId)
++  );
++
++  const query = messageHistoryToQuery(messages);
++
++  const relatedChats = await searchWithEmbeddings(
++    query,
++    allOtherChats,
++    chatToText
++  );
++
++  return relatedChats.slice(0, CHATS_TO_SEARCH);
++};

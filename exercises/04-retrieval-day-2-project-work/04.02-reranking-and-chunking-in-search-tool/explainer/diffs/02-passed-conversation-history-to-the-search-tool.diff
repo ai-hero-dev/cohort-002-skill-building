@@ -1,5 +1,5 @@
-commit b207ef0c3bb17a9228df5682426e94047abdc59a
-Author: Matt Pocock <mattpocockvoice@gmail.com>
+commit 60e247adafc3b9d92b3e395539235344d1900eac
+Author: Matt Pocock <team@aihero.dev>
 Date:   Wed Oct 29 14:45:46 2025 +0000
 
     04.02.02 Passed conversation history to the search tool

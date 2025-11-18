@@ -1,0 +1,116 @@
+commit 3cea46fd191a5b82b816e057bed070554189197a
+Author: Matt Pocock <team@aihero.dev>
+Date:   Tue Nov 11 12:00:37 2025 +0000
+
+    08.01.01 Made extractMemories testable
+
+diff --git a/src/app/api/chat/extract-memories.ts b/src/app/api/chat/extract-memories.ts
+index 9cab9a6..4486fc9 100644
+--- a/src/app/api/chat/extract-memories.ts
++++ b/src/app/api/chat/extract-memories.ts
+@@ -1,48 +1,48 @@
++import { memoryToText } from "@/app/memory-search";
+ import {
+   createMemory,
+   DB,
+   deleteMemory,
+-  loadMemories,
+   updateMemory,
+ } from "@/lib/persistence-layer";
+ import { google } from "@ai-sdk/google";
+-import { convertToModelMessages, generateObject } from "ai";
++import { convertToModelMessages, generateObject, LanguageModel } from "ai";
+ import { z } from "zod";
+ import { MyMessage } from "./route";
+-import { memoryToText } from "@/app/memory-search";
+ 
+-export async function extractAndUpdateMemories(opts: {
++export const extractMemoriesInner = async (opts: {
+   messages: MyMessage[];
+   memories: DB.Memory[];
+-}) {
++  model: LanguageModel;
++}) => {
+   // Only include user and assistant messages, not tool calls
+   // This is a cost-saving measure
+   const filteredMessages = opts.messages.filter(
+     (message) => message.role === "user" || message.role === "assistant"
+   );
+ 
+   const memoriesResult = await generateObject({
+-    model: google("gemini-2.5-flash"),
++    model: opts.model,
+     schema: z.object({
+       updates: z
+         .array(
+           z.object({
+             id: z.string().describe("The ID of the existing memory to update"),
+             title: z.string().describe("The updated memory title"),
+             content: z.string().describe("The updated memory content"),
+           })
+         )
+         .describe("Memories to update"),
+       deletions: z.array(z.string()).describe("Array of memory IDs to delete"),
+       additions: z
+         .array(
+           z.object({
+             title: z.string().describe("The memory title"),
+             content: z.string().describe("The memory content"),
+           })
+         )
+         .describe("New memories to add"),
+     }),
+     system: `You are a memory management agent that extracts and maintains permanent information about the user from conversations.
+ 
+ <existing-memories>
+@@ -83,37 +83,50 @@ For each operation:
+ Be conservative - only add memories that will genuinely help personalize future conversations.`,
+     messages: convertToModelMessages(filteredMessages),
+   });
+ 
+   const { updates, deletions, additions } = memoriesResult.object;
+ 
++  return { updates, deletions, additions };
++};
++
++export async function extractAndUpdateMemories(opts: {
++  messages: MyMessage[];
++  memories: DB.Memory[];
++}) {
++  const { updates, deletions, additions } = await extractMemoriesInner({
++    messages: opts.messages,
++    memories: opts.memories,
++    model: google("gemini-2.5-flash"),
++  });
++
+   // Filter out deletions that are also being updated
+   const filteredDeletions = deletions.filter(
+     (deletion) => !updates.some((update) => update.id === deletion)
+   );
+ 
+   // Process updates
+   await Promise.all(
+     updates.map((update) =>
+       updateMemory(update.id, {
+         title: update.title,
+         content: update.content,
+       })
+     )
+   );
+ 
+   // Process deletions
+   await Promise.all(
+     filteredDeletions.map((deletion) => deleteMemory(deletion))
+   );
+ 
+   // Process additions
+   await Promise.all(
+     additions.map((addition) =>
+       createMemory({
+         id: crypto.randomUUID(),
+         title: addition.title,
+         content: addition.content,
+       })
+     )
+   );
+ }

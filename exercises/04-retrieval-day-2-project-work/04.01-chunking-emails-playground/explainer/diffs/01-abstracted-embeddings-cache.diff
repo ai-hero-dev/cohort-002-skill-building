@@ -1,0 +1,160 @@
+commit 3ca8ab223948310e29fd920ad5a155aff5f61ab7
+Author: Matt Pocock <team@aihero.dev>
+Date:   Tue Nov 4 14:47:19 2025 +0000
+
+    04.01.01 Abstracted embeddings cache
+
+diff --git a/src/app/embeddings.ts b/src/app/embeddings.ts
+new file mode 100644
+index 0000000..8d625fc
+--- /dev/null
++++ b/src/app/embeddings.ts
+@@ -0,0 +1,41 @@
++import path from "path";
++import crypto from "crypto";
++import fs from "fs/promises";
++
++const CACHE_DIR = path.join(process.cwd(), "data", "embeddings");
++
++const CACHE_KEY = "google-text-embedding-004";
++
++const getEmbeddingFilePath = (content: string) => {
++  const hash = crypto
++    .createHash("sha256")
++    .update(content)
++    .digest("hex")
++    .slice(0, 10);
++
++  return path.join(CACHE_DIR, `${CACHE_KEY}-${hash}.json`);
++};
++
++export const ensureEmbeddingsCacheDirectory = async () => {
++  await fs.mkdir(CACHE_DIR, { recursive: true });
++};
++
++export const getCachedEmbedding = async (
++  content: string
++): Promise<number[] | null> => {
++  const filePath = getEmbeddingFilePath(content);
++  try {
++    const cached = await fs.readFile(filePath, "utf-8");
++    return JSON.parse(cached);
++  } catch {
++    return null;
++  }
++};
++
++export const writeEmbeddingToCache = async (
++  content: string,
++  embedding: number[]
++) => {
++  const filePath = getEmbeddingFilePath(content);
++  await fs.writeFile(filePath, JSON.stringify(embedding));
++};
+diff --git a/src/app/search.ts b/src/app/search.ts
+index 02ee7a3..e6f5ca5 100644
+--- a/src/app/search.ts
++++ b/src/app/search.ts
+@@ -3,6 +3,11 @@ import fs from "fs/promises";
+ import path from "path";
+ import { embed, embedMany, cosineSimilarity } from "ai";
+ import { google } from "@ai-sdk/google";
++import {
++  ensureEmbeddingsCacheDirectory,
++  getCachedEmbedding,
++  writeEmbeddingToCache,
++} from "./embeddings";
+ 
+ export interface Email {
+   id: string;
+@@ -22,13 +27,13 @@ export interface Email {
+ 
+ export async function searchWithBM25(keywords: string[], emails: Email[]) {
+   // Combine subject + body for richer text corpus
+-  const corpus = emails.map((email) => `${email.subject} ${email.body}`);
++  const corpus = emails.map((email) => emailToText(email));
+ 
+   // BM25 returns score array matching corpus order
+   const scores: number[] = (BM25 as any)(corpus, keywords);
+ 
+   // Map scores to emails, sort descending
+   return scores
+     .map((score, idx) => ({ score, email: emails[idx] }))
+     .sort((a, b) => b.score - a.score);
+ }
+@@ -39,66 +44,58 @@ export async function loadEmails(): Promise<Email[]> {
+   return JSON.parse(fileContent);
+ }
+ 
+-const CACHE_DIR = path.join(process.cwd(), "data", "embeddings");
+-
+-const CACHE_KEY = "google-text-embedding-004";
+-
+-const getEmbeddingFilePath = (id: string) =>
+-  path.join(CACHE_DIR, `${CACHE_KEY}-${id}.json`);
++// Converts the email to a text string for indexing
++export const emailToText = (email: Email) => `${email.subject} ${email.body}`;
+ 
+ export async function loadOrGenerateEmbeddings(
+   emails: Email[]
+ ): Promise<{ id: string; embedding: number[] }[]> {
+   // Ensure cache directory exists
+-  await fs.mkdir(CACHE_DIR, { recursive: true });
++  await ensureEmbeddingsCacheDirectory();
+ 
+   const results: { id: string; embedding: number[] }[] = [];
+   const uncachedEmails: Email[] = [];
+ 
+   // Check cache for each email
+   for (const email of emails) {
+-    try {
+-      const cached = await fs.readFile(getEmbeddingFilePath(email.id), "utf-8");
+-      const data = JSON.parse(cached);
+-      results.push({ id: email.id, embedding: data.embedding });
+-    } catch {
++    const cachedEmbedding = await getCachedEmbedding(emailToText(email));
++    if (cachedEmbedding) {
++      results.push({ id: email.id, embedding: cachedEmbedding });
++    } else {
+       // Cache miss - need to generate
+       uncachedEmails.push(email);
+     }
+   }
+ 
+   // Generate embeddings for uncached emails in batches of 99
+   if (uncachedEmails.length > 0) {
+     console.log(`Generating embeddings for ${uncachedEmails.length} emails`);
+ 
+     const BATCH_SIZE = 99;
+     for (let i = 0; i < uncachedEmails.length; i += BATCH_SIZE) {
+       const batch = uncachedEmails.slice(i, i + BATCH_SIZE);
+       console.log(
+         `Processing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(
+           uncachedEmails.length / BATCH_SIZE
+         )}`
+       );
+ 
+       const { embeddings } = await embedMany({
+         model: google.textEmbeddingModel("text-embedding-004"),
+-        values: batch.map((e) => `${e.subject} ${e.body}`),
++        values: batch.map((e) => emailToText(e)),
+       });
+ 
+       // Write batch to cache
+       for (let j = 0; j < batch.length; j++) {
+         const email = batch[j];
+         const embedding = embeddings[j];
+ 
+-        await fs.writeFile(
+-          getEmbeddingFilePath(email.id),
+-          JSON.stringify({ id: email.id, embedding })
+-        );
++        await writeEmbeddingToCache(emailToText(email), embedding);
+ 
+         results.push({ id: email.id, embedding });
+       }
+     }
+   }
+ 
+   return results;
+ }

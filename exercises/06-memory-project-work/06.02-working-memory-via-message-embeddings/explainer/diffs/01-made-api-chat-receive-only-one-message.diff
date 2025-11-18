@@ -1,124 +1,102 @@
-commit c91d06c25547320b7041f657924b9b68fdbb650e
+commit ed229918fa38c2e4167d5bdca702e5901f89f1b6
 Author: Matt Pocock <team@aihero.dev>
-Date:   Fri Oct 31 16:03:47 2025 +0000
+Date:   Wed Nov 5 13:17:19 2025 +0000
 
-    04.04.02 Added includeThread
+    06.02.01 Made /api/chat receive only one message
 
-diff --git a/src/app/api/chat/get-emails-tool.ts b/src/app/api/chat/get-emails-tool.ts
-index 266dd47..6ab914b 100644
---- a/src/app/api/chat/get-emails-tool.ts
-+++ b/src/app/api/chat/get-emails-tool.ts
-@@ -4,34 +4,51 @@ import { z } from "zod";
- 
- export const getEmailsTool = tool({
-   description:
--    "Fetch full content of specific emails by their IDs. Use this after searching/filtering to retrieve complete email bodies.",
-+    "Fetch full content of specific emails by their IDs. Use this after searching/filtering to retrieve complete email bodies. Optionally include entire conversation threads.",
-   inputSchema: z.object({
-     ids: z
-       .array(z.string())
-       .describe("Array of email IDs to retrieve full content for"),
-+    includeThread: z
-+      .boolean()
-+      .describe(
-+        "If true, fetch entire conversation threads for the specified emails"
-+      )
-+      .default(false),
-   }),
--  execute: async ({ ids }) => {
--    console.log("Get emails params:", { ids });
-+  execute: async ({ ids, includeThread }) => {
-+    console.log("Get emails params:", { ids, includeThread });
- 
-     const emails = await loadEmails();
- 
--    const results = emails.filter((email) => ids.includes(email.id));
-+    let results = emails.filter((email) => ids.includes(email.id));
-+
-+    if (includeThread && results.length > 0) {
-+      // Get all unique threadIds from the requested emails
-+      const threadIds = [...new Set(results.map((email) => email.threadId))];
-+
-+      // Get all emails that belong to these threads
-+      results = emails.filter((email) => threadIds.includes(email.threadId));
-+
-+      // Sort by timestamp to maintain conversation order
-+      results.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
-+    }
- 
-     console.log(`Returning ${results.length} emails`);
- 
-     return {
-       emails: results.map((email) => ({
-         id: email.id,
-         threadId: email.threadId,
-         subject: email.subject,
-         from: email.from,
-         to: email.to,
-         timestamp: email.timestamp,
-         body: email.body,
-         cc: email.cc,
-         inReplyTo: email.inReplyTo,
-         references: email.references,
-       })),
-     };
-   },
- });
 diff --git a/src/app/api/chat/route.ts b/src/app/api/chat/route.ts
-index 5c32021..e7822a1 100644
+index 916be6a..901dd70 100644
 --- a/src/app/api/chat/route.ts
 +++ b/src/app/api/chat/route.ts
-@@ -105,43 +105,45 @@ export async function POST(req: Request) {
+@@ -46,74 +46,75 @@ const getTools = (messages: UIMessage[]) => ({
+ 
+ export async function POST(req: Request) {
+   const body: {
+-    messages: UIMessage[];
++    message: MyMessage;
+     id: string;
+   } = await req.json();
+ 
+   const chatId = body.id;
+ 
++  let chat = await getChat(chatId);
++
+   const validatedMessagesResult = await safeValidateUIMessages<MyMessage>({
+-    messages: body.messages,
++    messages: [...(chat?.messages ?? []), body.message],
+   });
+ 
+   if (!validatedMessagesResult.success) {
+     return new Response(validatedMessagesResult.error.message, { status: 400 });
+   }
+ 
+   const messages = validatedMessagesResult.data;
+ 
+-  let chat = await getChat(chatId);
+   const mostRecentMessage = messages[messages.length - 1];
+ 
+   if (!mostRecentMessage) {
+     return new Response("No messages provided", { status: 400 });
+   }
+ 
+   if (mostRecentMessage.role !== "user") {
+     return new Response("Last message must be from the user", {
+       status: 400,
+     });
+   }
+ 
+   const allMemories = await searchMemories({ messages });
+ 
+   const memories = allMemories.slice(0, MEMORIES_TO_USE);
+ 
+   const stream = createUIMessageStream<MyMessage>({
+     execute: async ({ writer }) => {
+       let generateTitlePromise: Promise<void> | undefined = undefined;
+ 
+       if (!chat) {
+         const newChat = await createChat({
+           id: chatId,
+           title: "Generating title...",
+           initialMessages: messages,
+         });
+         chat = newChat;
+ 
+         writer.write({
+           type: "data-frontend-action",
+           data: "refresh-sidebar",
+           transient: true,
+         });
+ 
+         generateTitlePromise = generateTitleForChat(messages)
+           .then((title) => {
+             return updateChatTitle(chatId, title);
+           })
+           .then(() => {
+             writer.write({
+               type: "data-frontend-action",
+               data: "refresh-sidebar",
+               transient: true,
+             });
+           });
+       } else {
+         await appendToChatMessages(chatId, [mostRecentMessage]);
+       }
+ 
        const result = streamText({
          model: google("gemini-2.5-flash"),
          messages: convertToModelMessages(messages),
          system: `
  <task-context>
- You are an email assistant that helps users find and understand information from their emails.
- </task-context>
- 
- <rules>
- - You have THREE tools available: 'search', 'filterEmails', and 'getEmails'
- - Follow this multi-step workflow for token efficiency:
- 
-   STEP 1 - Browse metadata:
-   USE 'filterEmails' when the user wants to:
-   - Find emails from/to specific people (e.g., "emails from John", "emails to sarah@example.com")
-   - Filter by date ranges (e.g., "emails before January 2024", "emails after last week")
-   - Find emails containing exact text (e.g., "emails containing 'invoice'")
-   - Any combination of precise filtering criteria
- 
-   USE 'search' when the user wants to:
-   - Find information semantically (e.g., "emails about the project deadline")
-   - Search by concepts or topics (e.g., "discussions about budget")
-   - Find answers to questions (e.g., "what did John say about the meeting?")
-   - Any query requiring understanding of meaning/context
-   - Find people by name or description (e.g., "Mike's biggest client")
- 
-   NOTE: 'search' and 'filterEmails' return metadata with snippets only (id, threadId, subject, from, to, timestamp, snippet)
- 
-   STEP 2 - Review and select:
-   - Review the subjects, metadata, and snippets from search/filter results
-   - Identify which specific emails need full content to answer the user's question
-   - If snippets contain enough info, answer directly without fetching full content
- 
-   STEP 3 - Fetch full content:
-   USE 'getEmails' to retrieve full email bodies:
-   - Pass array of email IDs you need to read completely
-+  - Set includeThread=true if you need conversation context (replies, full thread)
-+  - Set includeThread=false for individual emails
- 
- - NEVER answer from your training data - always use tools first
- - If the first query doesn't find enough information, try different approaches or tools
- - Only after using tools should you formulate your answer based on the results
- </rules>
- 
- <the-ask>
 diff --git a/src/app/chat.tsx b/src/app/chat.tsx
-index 9e2dc08..5beb90d 100644
+index 65bad87..7be7101 100644
 --- a/src/app/chat.tsx
 +++ b/src/app/chat.tsx
-@@ -49,384 +49,390 @@ import { Button } from "@/components/ui/button";
+@@ -45,397 +45,408 @@ import { Fragment, startTransition, useState } from "react";
+ import type { MyMessage } from "./api/chat/route";
+ import { useFocusWhenNoChatIdPresent } from "./use-focus-chat-when-new-chat-button-pressed";
+ import { Button } from "@/components/ui/button";
++import { DefaultChatTransport } from "ai";
+ 
  export const Chat = (props: { chat: DB.Chat | null }) => {
    const [backupChatId, setBackupChatId] = useState(crypto.randomUUID());
    const [input, setInput] = useState("");
@@ -138,7 +116,20 @@ index 9e2dc08..5beb90d 100644
          router.refresh();
        }
      },
+     onFinish: () => {
+       router.refresh();
+     },
      generateId: () => crypto.randomUUID(),
++    transport: new DefaultChatTransport({
++      prepareSendMessagesRequest: (request) => {
++        return {
++          body: {
++            id: request.body?.id,
++            message: request.messages[request.messages.length - 1],
++          },
++        };
++      },
++    }),
    });
  
    const ref = useFocusWhenNoChatIdPresent(chatIdFromSearchParams);
@@ -434,12 +425,12 @@ index 9e2dc08..5beb90d 100644
                                        {part.input.ids.length !== 1 ? "s" : ""}
                                      </div>
                                    )}
-+                                  <div>
-+                                    <span className="font-medium">
-+                                      Include Thread:
-+                                    </span>{" "}
-+                                    {part.input.includeThread ? "Yes" : "No"}
-+                                  </div>
+                                   <div>
+                                     <span className="font-medium">
+                                       Include Thread:
+                                     </span>{" "}
+                                     {part.input.includeThread ? "Yes" : "No"}
+                                   </div>
                                  </div>
                                </div>
                              )}

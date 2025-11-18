@@ -1,5 +1,5 @@
-commit f258fc04d61d757301b5559b3aaa073d269dcd80
-Author: Matt Pocock <mattpocockvoice@gmail.com>
+commit e0f9b993197db02f735072f6b74e8da973f90210
+Author: Matt Pocock <team@aihero.dev>
 Date:   Fri Oct 31 16:02:47 2025 +0000
 
     04.04.01 Made searches provide only metadata, with getting full emails in a separate tool

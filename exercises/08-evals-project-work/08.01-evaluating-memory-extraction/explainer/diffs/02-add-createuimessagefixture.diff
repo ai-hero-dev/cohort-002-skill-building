@@ -1,0 +1,31 @@
+commit e956d0231f40422296049739ab54c3a6fd82c883
+Author: Matt Pocock <team@aihero.dev>
+Date:   Tue Nov 11 11:38:29 2025 +0000
+
+    08.01.02 Add createUIMessageFixture
+
+diff --git a/evals/create-ui-message-fixture.ts b/evals/create-ui-message-fixture.ts
+new file mode 100644
+index 0000000..518ab41
+--- /dev/null
++++ b/evals/create-ui-message-fixture.ts
+@@ -0,0 +1,19 @@
++import type { UIMessage } from "ai";
++
++export function createUIMessageFixture<TMessage extends UIMessage>(
++  input: string[]
++): TMessage[];
++export function createUIMessageFixture<TMessage extends UIMessage>(
++  ...input: string[]
++): TMessage[];
++export function createUIMessageFixture<TMessage extends UIMessage>(
++  ...input: (string | string[])[]
++): TMessage[] {
++  return input.flat().map((message, index): TMessage => {
++    return {
++      id: String(index + 1),
++      role: index % 2 === 0 ? "user" : "assistant",
++      parts: [{ type: "text", text: message }],
++    } as TMessage;
++  });
++}

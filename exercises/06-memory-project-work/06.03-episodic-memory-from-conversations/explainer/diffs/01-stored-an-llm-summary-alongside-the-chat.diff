@@ -1,0 +1,93 @@
+commit 1d4c377b44b6d404319cdc9862cf06f92136c300
+Author: Matt Pocock <team@aihero.dev>
+Date:   Wed Nov 5 14:52:23 2025 +0000
+
+    06.03.01 Stored an LLM summary alongside the chat
+
+diff --git a/src/lib/persistence-layer.ts b/src/lib/persistence-layer.ts
+index 4ebaa4e..8fa39e7 100644
+--- a/src/lib/persistence-layer.ts
++++ b/src/lib/persistence-layer.ts
+@@ -6,25 +6,45 @@ import { join } from "path";
+ export namespace DB {
+   // Types for our persistence layer
+   export interface Chat {
+     id: string;
+     title: string;
+     messages: MyMessage[];
++    llmSummary?: ChatLLMSummary;
+     createdAt: string;
+     updatedAt: string;
+   }
+ 
++  export interface ChatLLMSummary {
++    /**
++     * 2-4 keywords that would help identify similar future conversations
++     */
++    tags: string[];
++    /**
++     * One sentence describing what the conversation accomplished
++     */
++    summary: string;
++    /**
++     * Most effective approach or strategy used in this conversation
++     */
++    whatWorkedWell: string;
++    /**
++     * Most important pitfall or ineffective approach to avoid
++     */
++    whatToAvoid: string;
++  }
++
+   export interface Memory {
+     id: string;
+     title: string;
+     content: string;
+     createdAt: string;
+     updatedAt: string;
+   }
+ 
+   export interface PersistenceData {
+     chats: DB.Chat[];
+     memories: DB.Memory[];
+   }
+ }
+ 
+ // File path for storing the data
+@@ -143,21 +163,36 @@ export async function deleteChat(chatId: string): Promise<boolean> {
+ export async function updateChatTitle(
+   chatId: string,
+   title: string
+ ): Promise<DB.Chat | null> {
+   const chats = await loadChats();
+   const chatIndex = chats.findIndex((chat) => chat.id === chatId);
+ 
+   if (chatIndex === -1) {
+     return null;
+   }
+ 
+   chats[chatIndex]!.title = title;
+   chats[chatIndex]!.updatedAt = new Date().toISOString();
+ 
+   await saveChats(chats);
+   return chats[chatIndex]!;
+ }
+ 
++export async function updateChatLLMSummary(
++  chatId: string,
++  llmSummary: DB.Chat["llmSummary"]
++): Promise<DB.Chat | null> {
++  const chats = await loadChats();
++  const chatIndex = chats.findIndex((chat) => chat.id === chatId);
++  if (chatIndex === -1) {
++    return null;
++  }
++  chats[chatIndex]!.llmSummary = llmSummary;
++  chats[chatIndex]!.updatedAt = new Date().toISOString();
++  await saveChats(chats);
++  return chats[chatIndex]!;
++}
++
+ /**
+  * Load all memories from the JSON file
+  */

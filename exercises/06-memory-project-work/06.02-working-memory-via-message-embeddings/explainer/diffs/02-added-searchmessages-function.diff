@@ -1,0 +1,34 @@
+commit f44dd82cbea9a4af2d14095ede985be5f7c94add
+Author: Matt Pocock <team@aihero.dev>
+Date:   Wed Nov 5 14:50:09 2025 +0000
+
+    06.02.02 Added searchMessages function
+
+diff --git a/src/app/message-search.ts b/src/app/message-search.ts
+new file mode 100644
+index 0000000..a632a38
+--- /dev/null
++++ b/src/app/message-search.ts
+@@ -0,0 +1,22 @@
++import { MyMessage } from "./api/chat/route";
++import { searchWithEmbeddings } from "./search";
++import { messageHistoryToQuery, messageToText } from "./utils";
++
++export const searchMessages = async (opts: {
++  recentMessages: MyMessage[];
++  olderMessages: MyMessage[];
++}) => {
++  if (opts.olderMessages.length === 0) {
++    return [];
++  }
++
++  const query = messageHistoryToQuery(opts.recentMessages);
++
++  const embeddingsRanking = await searchWithEmbeddings(
++    query,
++    opts.olderMessages,
++    messageToText
++  );
++
++  return embeddingsRanking;
++};

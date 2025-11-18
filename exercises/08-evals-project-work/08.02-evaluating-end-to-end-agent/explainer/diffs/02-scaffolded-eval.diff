@@ -1,0 +1,63 @@
+commit 2b28237cd90f8c303120e16b7e5da75547c86799
+Author: Matt Pocock <team@aihero.dev>
+Date:   Tue Nov 11 15:57:10 2025 +0000
+
+    08.02.02 Scaffolded eval
+
+diff --git a/evalite.config.ts b/evalite.config.ts
+index 2b9d0d6..550f425 100644
+--- a/evalite.config.ts
++++ b/evalite.config.ts
+@@ -3,4 +3,5 @@ import config from "./vitest.config";
+ 
+ export default defineConfig({
+   viteConfig: config,
++  testTimeout: 120_000, // 2 minutes
+ });
+diff --git a/evals/e2e-retrieval.eval.ts b/evals/e2e-retrieval.eval.ts
+new file mode 100644
+index 0000000..1f5302a
+--- /dev/null
++++ b/evals/e2e-retrieval.eval.ts
+@@ -0,0 +1,41 @@
++import { createAgent } from "@/app/api/chat/agent";
++import { MyMessage } from "@/app/api/chat/route";
++import { google } from "@ai-sdk/google";
++import { convertToModelMessages, stepCountIs } from "ai";
++import { evalite } from "evalite";
++import { createUIMessageFixture } from "./create-ui-message-fixture";
++
++evalite.each([
++  {
++    name: "Gemini 2.5 Flash",
++    input: google("gemini-2.5-flash"),
++  },
++])("Search for information", {
++  data: [
++    {
++      input: createUIMessageFixture<MyMessage>(
++        "Which house did I buy? What is its address?"
++      ),
++      expected:
++        "You bought a house at 42 Victoria Grove, Chorlton, Manchester M21 9EH.",
++    },
++  ],
++  task: async (input, model) => {
++    const agent = createAgent({
++      memories: [],
++      messages: input,
++      model: model,
++      stopWhen: stepCountIs(10),
++      relatedChats: [],
++    });
++
++    const result = await agent.generate({
++      messages: convertToModelMessages(input),
++    });
++
++    return {
++      text: result.text,
++      toolCalls: result.steps.flatMap((step) => step.toolCalls),
++    };
++  },
++});

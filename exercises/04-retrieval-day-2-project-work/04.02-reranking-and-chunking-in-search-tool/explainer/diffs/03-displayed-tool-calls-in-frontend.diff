@@ -1,5 +1,5 @@
-commit 5c8b9dc322926682866a334095f32a05d8b6cb7f
-Author: Matt Pocock <mattpocockvoice@gmail.com>
+commit bc3b24dd7986f88c27d5c853ac65eadad07b7c09
+Author: Matt Pocock <team@aihero.dev>
 Date:   Fri Oct 31 15:01:53 2025 +0000
 
     04.02.03 Displayed tool calls in frontend
