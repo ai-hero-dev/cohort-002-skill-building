@@ -18,19 +18,19 @@ The Zapier MCP server has a just-generous-enough free trial (50 invocations per 
 
 4. Press the "Create New Server" button in the top-left:
 
-![Create New Server Button](./create-new-server-button.png)
+![Create New Server Button](https://res.cloudinary.com/total-typescript/image/upload/v1763552174/ai-hero-images/spnnjmx4v0ikefeptwmh.png)
 
 5. Choose "Other" as the MCP Client, and choose a name:
 
-![Create New Server Modal](image.png)
+![Create New Server Modal](https://res.cloudinary.com/total-typescript/image/upload/v1763552175/ai-hero-images/w9pidhufiymg5pkoriba.png)
 
 6. Press the 'connect' button in the Nav bar
 
-![Position Of The Connect Button](image-1.png)
+![Position Of The Connect Button](https://res.cloudinary.com/total-typescript/image/upload/v1763552175/ai-hero-images/cyslggsvdcg17c3jrf0r.png)
 
 7. Keep the transport on 'Streamable HTTP' and copy the Server URL
 
-![Position of the 'Copy Server URL' button](image-2.png)
+![Position of the 'Copy Server URL' button](https://res.cloudinary.com/total-typescript/image/upload/v1763552176/ai-hero-images/dkfxdidpsu3xi4meqplh.png)
 
 8. Store your Zapier MCP URL as an environment variable so your agent can connect to it.
 
