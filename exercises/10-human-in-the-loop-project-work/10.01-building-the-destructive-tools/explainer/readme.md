@@ -4,9 +4,7 @@ There's a faster way to prototype and validate tool behavior: MCP servers. Speci
 
 The Zapier MCP server has a just-generous-enough free trial (50 invocations per month), making it perfect for testing how external services behave with your personal assistant before committing to custom implementations.
 
-### Steps To Complete
-
-#### Setting up your Zapier MCP Server
+## Setting up your Zapier MCP Server
 
 - [ ] Sign up for a Zapier account
 
@@ -43,6 +41,8 @@ ZAPIER_MCP_URL=your_mcp_url_here
 <!-- VIDEO -->
 
 Let's integrate the Zapier MCP server with our agent so it can access external tools and services.
+
+Recommendation: hand-code this commit. Understanding the flow for how tools are added to the agent is important.
 
 ### Steps To Complete
 
@@ -204,6 +204,8 @@ pnpm dev
 
 We're going to clean up the MCP tools by removing `add_tools` and `edit_tools`, which we don't want our agent to use. We'll also add logging to see what tools are available.
 
+Recommendation: hand-code this commit. Being able to debug the tools with console.logs and dive deep into their shape is very handy - especially with external toolsets.
+
 ### Steps To Complete
 
 #### Creating the `deleteUnwantedTools` function
@@ -270,6 +272,8 @@ export const getMCPTools = async () => {
 <!-- VIDEO -->
 
 Let's add local type-safe schema definitions for the MCP tools to enable better control and token optimization.
+
+Recommendation: cherry-pick this commit. This shows what is possible with local definitions, so it's worth reading through. Afterwards, you can feel free to try and build your own local definitions for the MCP tools you've configured.
 
 ### Steps To Complete
 

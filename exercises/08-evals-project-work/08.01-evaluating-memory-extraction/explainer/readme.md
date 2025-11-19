@@ -10,6 +10,8 @@ This is the foundation for understanding whether our AI system actually works th
 
 We're refactoring `extractAndUpdateMemories` to separate the core logic from database operations. This makes the function testable and allows us to swap different models.
 
+Recommendation: hand-code this commit. This is an important maneuver to make your code evaluatable.
+
 ### Steps To Complete
 
 #### Creating the `extractMemoriesInner` function
@@ -158,6 +160,8 @@ export async function extractAndUpdateMemories(opts: {
 
 Let's add a utility function that makes it easy to create UI message histories for testing. This eliminates the need to manually assign IDs and roles to each message.
 
+Recommendation: cherry-pick this commit. This is a utility function I'm considering adding to Evalite at some point anyway, so might as well cherry-pick it here.
+
 ### Steps To Complete
 
 #### Creating the `createUIMessageFixture` function
@@ -198,6 +202,8 @@ export function createUIMessageFixture<
 <!-- VIDEO -->
 
 Let's scaffold our first evaluation for testing memory extraction when the database is empty.
+
+Recommendation: hand-code this commit. This is your first chance to use `createUIMessageFixture`, and it's worth hand-coding the scorers especially.
 
 ### Steps To Complete
 
@@ -405,6 +411,8 @@ pnpm dev:eval
 
 Let's expand the test dataset with multiple test cases covering different scenarios: extracting memories, handling action-based inputs with no extractable memories, filtering temporary vs permanent information, and multi-turn conversations.
 
+Recommendation: hand-code this commit, and think deeply about each test case. Writing test cases is HARD, and practice makes perfect.
+
 ### Steps To Complete
 
 #### Adding expected outputs to the first test case
@@ -522,6 +530,8 @@ pnpm dev:eval
 
 Let's replace the simple "Additions" scorer with a more sophisticated "Addition Faithfulness" scorer using the `answerCorrectness` scorer from Evalite.
 
+Recommendation: cherry-pick this commit, then read carefully and test. This uses a pre-built scorer from Evalite - but in the next commit, we'll actually replace it with a more suitable one.
+
 ### Steps To Complete
 
 #### Import the answerCorrectness scorer
@@ -589,6 +599,8 @@ pnpm dev:eval
 <!-- VIDEO -->
 
 Let's try replacing the `answerCorrectness` scorer with `answerSimilarity` for a simpler, faster semantic comparison of generated memories to expected text.
+
+Recommendation: hand-code this commit. This is an extremely useful scorer that you'll likely use a LOT in the future.
 
 ### Steps To Complete
 

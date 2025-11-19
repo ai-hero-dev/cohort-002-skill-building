@@ -10,6 +10,8 @@ This is where your tools become part of a living, breathing system.
 
 Let's implement the backend infrastructure for human-in-the-loop tool approval, allowing users to review and approve/reject tool executions before they run.
 
+Recommendation: cherry-pick this commit. This is porting material over from the skill-building.
+
 ### Steps To Complete
 
 #### Creating the HITL types and utilities
@@ -452,6 +454,8 @@ Now the backend is ready to handle human-in-the-loop approvals! The agent will s
 <!-- VIDEO -->
 
 We're going to add human-in-the-loop approval functionality to the chat interface, allowing users to approve or reject tool usage before execution.
+
+Recommendation: cherry-pick this commit, but read through the changes carefully. Wrapping `sendMessage` is a common pattern. There are also some small tweaks and improvements from the skill-building version. Finally, test it a LOT to make sure it's working as expected.
 
 ### Steps To Complete
 

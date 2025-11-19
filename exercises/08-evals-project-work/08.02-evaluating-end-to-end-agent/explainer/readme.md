@@ -10,6 +10,8 @@ In this section, we're going to evaluate the most critical aspect: whether our a
 
 Let's extract the agent logic into its own file to make it evaluatable separately from the rest of the system.
 
+Recommendation: hand-code this commit. This uses `Experimental_Agent` from the `ai` package, which will likely be stable come v6.
+
 ### Steps To Complete
 
 #### Importing Experimental_Agent in agent.ts
@@ -236,6 +238,8 @@ pnpm dev
 
 Let's scaffold an end-to-end eval for testing the agent's ability to retrieve information.
 
+Recommendation: hand-code this commit. Understanding the difference between `agent.stream` and `agent.generate` is important.
+
 ### Steps To Complete
 
 #### Increasing the test timeout
@@ -272,7 +276,7 @@ import { evalite } from 'evalite';
 import { createUIMessageFixture } from './create-ui-message-fixture';
 ```
 
-- [ ] Set up the eval with a test case asking "Which house did I buy? What is its address?" with an expected output. Test against Gemini 2.5 Flash.
+- [ ] Set up the eval with a test case asking "Which house did I buy? What is its address?" with an expected output. Test against Gemini 2.5 Flash. Use `agent.generate` instead of `agent.stream` to produce a text output.
 
 <Spoiler>
 
@@ -329,6 +333,8 @@ pnpm dev:eval e2e-retrieval
 <!-- VIDEO -->
 
 The default UI shows the output as a single object, which is hard to read visually. Let's customize the columns displayed in the eval to show a clean, organized layout with separate columns for input, summary, tool calls, and expected output.
+
+Recommendation: hand-code this commit. Customizing Evalite's UI is a powerful way to make your evals more readable and useful.
 
 ### Steps To Complete
 
@@ -408,6 +414,8 @@ evalite.each([
 
 Let's add the `answerCorrectness` scorer to evaluate how well our agent answers questions by comparing against expected answers.
 
+Recommendation: hand-code this commit. This is where `answerCorrectness` shines - and we also adjust our dataset to include more test cases.
+
 ### Steps To Complete
 
 #### Adding imports
@@ -482,6 +490,8 @@ pnpm dev:eval e2e-retrieval
 <!-- VIDEO -->
 
 Let's expand the eval test cases with multi-hop queries (requiring multiple steps to answer) and filtering queries (testing specific data retrieval) to better test the system's capabilities.
+
+Recommendation: hand-code this commit. You can never have too much practice writing test cases.
 
 ### Steps To Complete
 

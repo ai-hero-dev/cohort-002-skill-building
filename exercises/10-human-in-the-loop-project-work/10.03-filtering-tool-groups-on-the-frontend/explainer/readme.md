@@ -10,6 +10,8 @@ Instead of overwhelming your agent with every possible tool, you can organize th
 
 Let's set up the app configuration system with type definitions and helper functions to manage tool filtering and app selection.
 
+Recommendation: cherry-pick this commit, then carefully examine it. It creates the structure which we're going to rely on in the next couple of commits. Finally, tweak it. The commit assumes you're using Google Calendar and Google Tasks, so you'll need to tweak it to your own tools.
+
 ### Steps To Complete
 
 #### Creating the apps configuration file
@@ -143,6 +145,8 @@ export type MyMessage = UIMessage<
 <!-- VIDEO -->
 
 Let's add the ability for users to tag specific apps (Calendar, Tasks, etc.) before sending messages, which gets sent as data parts alongside the message text.
+
+Recommendation: cherry-pick this commit if you're not that interested in frontend code.
 
 ### Steps To Complete
 
@@ -341,6 +345,8 @@ pnpm dev
 <!-- VIDEO -->
 
 Let's implement app tagging on the backend to filter MCP tools based on which apps the user has enabled.
+
+Recommendation: hand-code this commit. This is new ground, and covers an important concept.
 
 ### Steps To Complete
 
