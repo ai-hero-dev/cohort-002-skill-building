@@ -34,7 +34,7 @@ export const loadEmails = async () => {
 export type Embeddings = Record<string, number[]>;
 
 const getExistingEmbeddingsPath = (cacheKey: string) => {
-  return path.resolve(process.cwd(), 'data', `${cacheKey}.json`);
+  return path.resolve(process.cwd(), 'datasets', `${cacheKey}.json`);
 };
 
 const saveEmbeddings = async (
