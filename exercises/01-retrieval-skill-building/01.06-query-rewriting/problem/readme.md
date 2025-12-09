@@ -96,8 +96,7 @@ Try "What did David say about the mortgage application?"
 Look for the logged `keywords.object` which will show both fields:
 
 ```ts
-console.log('Keywords:', keywords.object.keywords);
-console.log('Search Query:', keywords.object.searchQuery);
+console.dir(keywords.object, { depth: null });
 ```
 
 Verify that the keywords are specific terms from the conversation. Verify that the search query is a broader, more semantic version.
