@@ -11,5 +11,6 @@ export const searchViaBM25 = async (
       score,
       chunk: chunks[index]!,
     }))
+    .filter((r) => r.score > 0)
     .sort((a, b) => b.score - a.score);
 };

@@ -45,6 +45,7 @@ const searchEmails = (
       score,
       email: emails[index]!,
     }))
+    .filter((r) => r.score > 0)
     .sort((a, b) => b.score - a.score);
 };
 
