@@ -32,10 +32,18 @@ export const POST = async (req: Request): Promise<Response> => {
     execute: async ({ writer }) => {
       // TODO: call the searchEmails function with the
       // conversation history to get the search results
-      const searchResults = TODO;
+      const searchResults = searchEmails(formatMessageHistory(messages));
 
       // TODO: take the top X search results
-      const topSearchResults = TODO;
+      const topSearchResults = (await searchResults).splice(0, 5);
+        console.log(topSearchResults.map(result => ({
+          score: result.score,
+          email: {
+          ...result.email,
+          body: null
+        }
+        }),
+      ))
 
       const emailSnippets = [
         '## Emails',

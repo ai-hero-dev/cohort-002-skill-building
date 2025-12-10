@@ -20,7 +20,7 @@ export type Email = {
 export const loadEmails = async () => {
   const EMAILS_LOCATION = path.resolve(
     import.meta.dirname,
-    '../../../../../datasets/emails.json',
+    '../../../../../datasets/my-emails.json',
   );
 
   const content = await readFile(EMAILS_LOCATION, 'utf8');

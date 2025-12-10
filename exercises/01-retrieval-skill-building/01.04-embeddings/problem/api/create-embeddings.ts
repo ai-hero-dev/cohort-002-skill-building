@@ -22,7 +22,7 @@ export type Email = {
 export const loadEmails = async () => {
   const EMAILS_LOCATION = path.resolve(
     import.meta.dirname,
-    '../../../../../datasets/emails.json',
+    '../../../../../datasets/my-emails.json',
   );
 
   const content = await readFile(EMAILS_LOCATION, 'utf8');
@@ -141,7 +141,7 @@ export const searchEmails = async (query: string) => {
   return scores.sort((a, b) => b.score - a.score);
 };
 
-export const EMBED_CACHE_KEY = 'emails-google';
+export const EMBED_CACHE_KEY = 'my-emails-google';
 
 const embedLotsOfText = async (
   emails: Email[],
@@ -151,19 +151,35 @@ const embedLotsOfText = async (
     embedding: number[];
   }[]
 > => {
-  // TODO: Implement this function by using the embedMany function
-  throw new Error('Not implemented');
+  const allEmailsText = emails.map((email => `${email.subject}\n\n${email.body}`));
+  const result = await embedMany({
+    model: myEmbeddingModel,
+    values: allEmailsText,
+    maxRetries: 0,
+  });
+  
+  return result.embeddings.map((embedding, index) => {
+    return {
+      id: emails[index]!.id,
+      embedding: embedding,
+    };  
+  })
 };
 
 const embedOnePieceOfText = async (
   text: string,
 ): Promise<number[]> => {
-  // TODO: Implement this function by using the embed function
+  const result = await embed({
+    model: myEmbeddingModel,
+    value: text,
+    maxRetries: 0,
+  });
+  return result.embedding;
 };
 
 const calculateScore = (
   queryEmbedding: number[],
   embedding: number[],
 ): number => {
-  // TODO: Implement this function by using the cosineSimilarity function
+  return cosineSimilarity(queryEmbedding, embedding);
 };

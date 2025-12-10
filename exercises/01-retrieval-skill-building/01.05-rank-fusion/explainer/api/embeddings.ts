@@ -119,7 +119,7 @@ export const searchEmailsViaEmbeddings = async (
   return scores.sort((a, b) => b.score - a.score);
 };
 
-export const EMBED_CACHE_KEY = 'emails-google';
+export const EMBED_CACHE_KEY = 'my-emails-google';
 
 const embedLotsOfText = async (
   emails: Email[],

@@ -49,10 +49,10 @@ export const Message = ({
               : 'text-foreground px-4',
           )}
         >
-          {parts.map((part) => {
+          {parts.map((part, index) => {
             if (part.type === 'text') {
               return (
-                <div className="prose prose-sm prose-invert max-w-none">
+                <div className="prose prose-sm prose-invert max-w-none" key={index}>
                   <ReactMarkdown>{part.text}</ReactMarkdown>
                 </div>
               );
