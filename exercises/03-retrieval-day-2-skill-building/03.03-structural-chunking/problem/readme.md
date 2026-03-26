@@ -119,7 +119,7 @@ Too little overlap may lose important context. Too much creates unnecessary dupl
 
 - [ ] Review the chunks in the browser at `localhost:3000`
 
-Use the search functionality to find specific content like "TypeScript beginnings". Check that related content stays together—a heading with its following paragraphs should form a coherent chunk.
+Use the search functionality to find specific content like "TypeScript's Beginnings". Check that related content stays together—a heading with its following paragraphs should form a coherent chunk.
 
 Verify that chapter markers properly separate major sections. Ensure code blocks aren't split in the middle.
 
